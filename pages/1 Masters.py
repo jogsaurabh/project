@@ -1,10 +1,11 @@
 #from logging import PlaceHolder
+from dataclasses import field
 import streamlit as st
 import pandas as pd
 import numpy as np
 #from main import show_login_page,LoggedOut_Clicked
-from functions import get_user_rights,get_active_users,add_datato_ds,get_verification,get_audit
-from functions import create_user,check_login,assign_user_rights,create_company,get_company_names
+from functions import update_risk_weights,get_user_rights,get_active_users,add_datato_ds,get_verification,get_audit
+from functions import get_risk_weights_ds_vouching,create_user,check_login,assign_user_rights,create_company,get_company_names,get_risk_weights_ds
 from functions import create_dataset,add_verification_criteria,get_dsname,get_entire_dataset,get_auditee_comp
 import sqlite3
 from PIL import Image
@@ -30,7 +31,7 @@ def show_masters():
         with st.sidebar.markdown("# Masters "):
             master_options = st.radio(
             'Masters- Dataset',
-            ('Add New Data Set', 'Add Records to Data Set','Add Check List','Compare with Audited Dataset'))            
+            ('Add New Data Set', 'Add Records to Data Set','Add Check List','Set Risk Weights for Data Set','Compare with Audited Dataset'))            
         if master_options=='Add New Data Set':
             
             st.title("Add New Data Set")
@@ -99,30 +100,80 @@ def show_masters():
                 #get list of ds_name for current company
                 ds_names=get_dsname(int(st.session_state['AuditID']))
                 ds_name=st.selectbox("Select Data Set Name...",ds_names,key="sb1")
-                if st.button("View Current check list",key="cc1"):
-                    veri_df=get_verification(ds_name,int(st.session_state['AuditID']))
-                    st.dataframe(veri_df)
+                #if st.button("View Current check list",key="cc1"):
+                    #veri_df=get_verification(ds_name,int(st.session_state['AuditID']))
+                    #st.dataframe(veri_df)
                 #Chek_List=pd.DataFrame()
                 with st.form("Verification Criteria",clear_on_submit=True):
-                    
-                    # Every form must have a submit button.
-                    #veri_df=get_verification(ds_name,comp_name)
-                    
-                    #st.dataframe(veri_df)
-                    
-                    Crtiteria=st.text_area("Enter Verification Criteria")
+                    c1,c2 =st.columns(2)
+                    with c1:
+                        Crtiteria=st.text_area("Enter Verification Criteria")
+                    with c2:
+                        risk_weight=st.slider("Set Risk Weights",min_value=1,max_value=10,key='slider2')
+                        
+                        if risk_weight >=1 and risk_weight <=3:
+                            risk_category='Low'
+                        elif risk_weight >=4 and risk_weight <=7:
+                            risk_category='Medium'
+                        else:
+                            risk_category='High'
+                       
+                                        
                     submitted = st.form_submit_button("Submit")
                     if submitted:
                         #add above to database
-                        Chek_List=add_verification_criteria(Crtiteria,ds_name,comp_name)
-                        st.header("Verification Criteria")
-                        
-                        veri_df=get_verification(ds_name,int(st.session_state['AuditID']))
-                        st.dataframe(veri_df)
+                        if Crtiteria:
+                            sta=add_verification_criteria(Crtiteria,ds_name,comp_name,risk_weight,risk_category)
+                            
+                        else:
+                            st.error('Criteria can not be blank.')
+                    
+                with st.expander("View Verification Criteria"):
+                    st.header("Verification Criteria")
+                    veri_df=get_verification(ds_name,int(st.session_state['AuditID']))
+                    st.dataframe(veri_df)
                         
                                     
-                
+        elif master_options=='Set Risk Weights for Data Set':
+            st.title("Assign Risk Weights for each Field")
                 #st.dataframe(Chek_List,width=1000)
+            ds_names=get_dsname(int(st.session_state['AuditID']))
+            ds=st.selectbox("Select Data Set Name...",ds_names,key="sbrisk1")
+            #fields=get_fields_names(f"{comp_name}_{st.session_state['AuditID']}_{ds}")
+            #remove wher field is null
+            
+            criteria=get_risk_weights_ds_vouching(ds)
+            criteria=criteria[['Criteria']]
+            with st.form("Risk",clear_on_submit=True):
+                    c1,c2 =st.columns(2)
+                    with c1:
+                        criteria_selected=st.selectbox("Select Criteria",key="sf1",options=criteria)
+                    with c2:
+                        risk_weight=st.slider("Set Risk Weights",min_value=1,max_value=10,key='slider2')
+                        
+                        if risk_weight >=1 and risk_weight <=3:
+                            risk_category='Low'
+                        elif risk_weight >=4 and risk_weight <=7:
+                            risk_category='Medium'
+                        else:
+                            risk_category='High'
+                       
+                                        
+                    submitted = st.form_submit_button("Submit")
+                    if submitted:
+                        if not criteria.empty:
+                            #st.write(criteria)
+                            updaterisk=update_risk_weights(criteria_selected,ds,int(st.session_state['AuditID']),risk_weight,risk_category)
+                            #Chek_List=add_verification_criteria(Crtiteria,ds_name,comp_name,risk_weight,risk_category)
+                        else:
+                            st.error('Criteria can not be blank.')
+            
+            #st.write(field)
+            with st.expander("View Risk Weights"):
+                    st.header("Risk Weights")
+                    riskdf=get_risk_weights_ds_vouching(ds)
+                    #veri_df=get_verification(ds_name,int(st.session_state['AuditID']))
+                    st.dataframe(riskdf)
         else:
                 st.title("Compare Audited Dataset with Current Version of Dataset")
                 st.info("Upload Current Version of Dataset..")

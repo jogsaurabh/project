@@ -2,6 +2,7 @@
 #from distutils.command.build import build
 #from sys import audit
 #from turtle import onclick
+from email.policy import default
 from operator import index
 from matplotlib.cbook import report_memory
 import streamlit as st
@@ -237,15 +238,24 @@ def show_audit():
                         condition=st.text_input("Condition",key='t2')
                         cause=st.text_input("Cause",key='t3')
                         effect=st.text_input("Effect",key='t4')
-                        # Every form must have a submit button.
-                    
+                        c1,c2 =st.columns(2)
+                        with c1:
+                            risk_weight=st.slider("Risk Weights",min_value=1,max_value=10,key='slider1')
+                        
+                        if risk_weight >=1 and risk_weight <=3:
+                            risk_category='Low'
+                        elif risk_weight >=4 and risk_weight <=7:
+                            risk_category='Medium'
+                        else:
+                            risk_category='High'
+                            
                         submitted = st.form_submit_button("Submit")
                         if submitted:
                             if criteria and condition:
                             #add above to database
                             #st.write("ddd")
                             #reviws_table.add_rows({"Criteria":"criteria","Condition":"condition","Cause":"cause","Effect":"effect"})
-                                Reveiew=add_analytical_review(criteria,condition,cause,effect,d_sname,st.session_state['Company'])
+                                Reveiew=add_analytical_review(criteria,condition,cause,effect,d_sname,st.session_state['Company'],risk_weight,risk_category)
                             else:
                                 st.error("Criteria & Condition are Mandatory fields")
                 with st.expander("Analytical Review & Other Comments"):

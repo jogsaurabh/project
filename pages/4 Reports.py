@@ -1,10 +1,11 @@
 #from turtle import color
 #from re import X
-from optparse import Values
-from tkinter import Y
-from tkinter.tix import COLUMN
+from docx import Document
+from htmldocx import HtmlToDocx
 from PIL import Image
-
+#import streamlit.components.v1 as components
+import plotly.io as pio
+from jinja2 import Environment, FileSystemLoader
 image = Image.open('autoaudit_t.png')
 import pandas as pd  # pip install pandas openpyxl
 import plotly.express as px  # pip install plotly-express
@@ -62,7 +63,10 @@ def show_report():
                 total_queries=auditvalues['total_queries_vv'] + auditvalues['total_queries_ar']
                 totalrisk=auditvalues['auditrisk_total']*totalaudit
                 auditrisk=auditvalues['auditrisk_audited']
-                riskpercent='{percent:.2%}'.format(percent=auditrisk/totalrisk)
+                if totalrisk==0:
+                    riskpercent='0.00 %'
+                else:
+                    riskpercent='{percent:.2%}'.format(percent=auditrisk/totalrisk)
                 #show KPIs
                 col1,col2,col3= st.columns(3)
                 with col1:
@@ -96,23 +100,25 @@ def show_report():
                 #st.markdown("""---""")
                 #charts for V&V
                 
-                st.success("Vouching & Verification - Queries Summary")
+                st.success(f"Queries Summary for {ds}")
                 #get DF for vouching & verification
-                auditdf=get_Summary_audit_values(int(st.session_state['AuditID']),ds)
+                auditdf_1=get_Summary_audit_values(int(st.session_state['AuditID']),ds)
+                dict={'Criteria':'Analytical Review & Other','Total Queries':auditvalues['total_queries_ar']}
+                auditdf_1=auditdf_1.append(dict,ignore_index=True)
                 col1, col2= st.columns(2)
                 with col1:
-                    st.bar_chart(auditdf,x='Criteria',y='Total Queries')
+                    st.bar_chart(auditdf_1,x='Criteria',y='Total Queries')
                 with col2:
-                    st.dataframe(auditdf)
+                    st.dataframe(auditdf_1)
                     #st.bar_chart(auditdf,x='Criteria',y='Total Queries')
-                st.success("Vouching & Verification - Risk Based Audit Summary")
-                auditdf=get_Summary_audit_values_riskweight(int(st.session_state['AuditID']),ds)
+                st.success(f"Risk Based Audit Summary for {ds}")
+                auditdf_r=get_Summary_audit_values_riskweight(int(st.session_state['AuditID']),ds)
                 col1, col2= st.columns(2)
                 with col1:
                 
-                    st.bar_chart(auditdf,x='Criteria',y='Total Risk Weight')
+                    st.bar_chart(auditdf_r,x='Criteria',y='Total Risk Weight')
                 with col2:
-                    st.dataframe(auditdf)
+                    st.dataframe(auditdf_r)
                 #by Risk Category
                 #auditdf=get_Summary_audit_values_riskcategory(int(st.session_state['AuditID']),ds)
                 
@@ -124,7 +130,7 @@ def show_report():
                     
                     #st.dataframe(auditdf)
                 st.markdown("""---""")
-                st.success("View / Download - Query List ...")
+                st.success(f"View / Download - Query List for {ds}...")
                 with st.expander("Voching & Verification Queries"):
                         
                         queries_df=get_vv_quries(f"{comp_name}_{st.session_state['AuditID']}_{ds}",ds,int(st.session_state['AuditID']))
@@ -180,8 +186,75 @@ def show_report():
                     st.bar_chart(auditdf,x='Data Set Name',y='Total Risk Weight')
                 with col2:
                     st.dataframe(auditdf,)
+         #download word file report
+            if st.button("Generate Report in Word",key="grw"):
+                fname=f"{ds}{comp_name}{st.session_state['AuditID']}"
+                st.write(fname)
+                # 2. Create a template Environment
+                env = Environment(loader=FileSystemLoader('templates'))
+                # 3. Load the template from the Environment
+                template = env.get_template('template.html')
+                # 4. Render the template with variables
+                chart1=px.bar(
+                        auditdf_1,
+                        x="Criteria",
+                        y="Total Queries",
+                        #orientation="h",
+                        title="<b>Total Queries by Criteria</b>",
+                        color_discrete_sequence=["#0083B8"] * len(auditdf),
+                        template="plotly_white",text_auto=True
+                    )
+                chart1.update_layout(
+                        plot_bgcolor="rgba(0,0,0,0)")
+                        #xaxis=(dict(showgrid=False)))
+                pio.write_image(chart1,'chart1.png')
+                #st.plotly_chart(chart1,use_container_width=True)
+                
+                #second chart
+                chart2=px.bar(
+                        auditdf_r,
+                        x="Criteria",
+                        y="Total Risk Weight",
+                        #orientation="h",
+                        title="<b>Risked Based Audit Summary</b>",
+                        color_discrete_sequence=["#0083B8"] * len(auditdf),
+                        template="plotly_white",text_auto=True
+                    )
+                chart2.update_layout(
+                        plot_bgcolor="rgba(0,0,0,0)")
+                        #xaxis=(dict(showgrid=False)))
+                pio.write_image(chart2,'chart2.png')
+                #st.plotly_chart(chart1,use_container_width=True)
                 
                 
+                titler=f"Company:- {comp_name}| Audit:- {st.session_state['Audit']} | Data Set:- {ds}"
+                html1 = template.render(logo='autoaudit_t.png',
+                                        page_title_text=titler,
+                                        title_text='Summary Observations',
+                                        Total_tansactions=totalrecords,
+                                        Transactions_Audited=totalaudit,
+                                        Total_Queries=total_queries,
+                                        TotalRiskScore=totalrisk,
+                                        AuditedRiskScore=auditrisk,
+                                        RiskPercentage=riskpercent,
+                                        DF1_heading=f"Query Summary for: {ds}",
+                                        dataurl1='chart1.png',                                
+                                        df1=auditdf_1.to_html(),
+                                        DF2_heading=f"Risk Based Audit Summary for: {ds}",
+                                        df2=auditdf_r.to_html(),
+                                        dataurl2='chart2.png')
+                                        
+                #docx to rport
+                document = Document()
+                new_parser = HtmlToDocx()
+                document=new_parser.parse_html_string(html1)
+                document.save(fname)
+                #st.markdown(html1, unsafe_allow_html=True)
+                #components.html(html1, width=800, height=400,scrolling=True)
+                with open(fname,'rb') as f:
+                    st.download_button('Download Reports',f,'report.docx')
+
+             
 
 headerSection = st.container()
 mainSection = st.container()
@@ -270,6 +343,7 @@ def show_login_page():
                 displayname = st.text_input (label="", value="", placeholder="Enter your Display Name",key="k4")
                 st.form_submit_button("Submit",on_click=Register_Clicked, args= (userid, password,designation,displayname))
                 #st.button ("Register", on_click=Register_Clicked, args= (userid, password,designation,displayname))
+
 
 def show_auditee():
     st.warning("You Have Logged In as Auditee...You have no access to this Menu")

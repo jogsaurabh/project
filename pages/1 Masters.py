@@ -34,8 +34,8 @@ def show_masters():
             ('Add New Data Set', 'Add Records to Data Set','Add Check List','Set Risk Weights for Data Set','Compare with Audited Dataset'))            
         if master_options=='Add New Data Set':
             
-            st.title("Add New Data Set")
-            st.info(f"1) Check that - First Row contains column Headings..\n2) File is of - .xlsx type\n3) File contains only 1 sheet")
+            st.header("Add New Data Set")
+            st.success(f"1) Check that - First Row contains column Headings..\n2) File is of - .xlsx type\n3) File contains only 1 sheet")
             #with st.form("New Dataset",clear_on_submit=True):
             #st.warning("Check ...First Column is Primary Key / Unique")
             auditee=get_auditee_comp()
@@ -49,7 +49,7 @@ def show_masters():
                 if uploaded_file is not None:
                         st.write(uploaded_file.name)
                         filename=uploaded_file.name
-                        dataframe = pd.read_excel(uploaded_file,)
+                        dataframe = pd.read_excel(uploaded_file)
                         st.dataframe(dataframe)
                         if st.button("Create Data Set",key="b1"):
                             if table_name:
@@ -61,8 +61,8 @@ def show_masters():
                                 #masters.empty()
                                 
         elif master_options=='Add Records to Data Set':
-                st.title("Add data to Existing Data Set")
-                st.warning("Check that all colums are Exactly same as per Existing Data Set, before uploading.")
+                st.header("Add data to Existing Data Set")
+                st.info("Check that all colums are Exactly same as per Existing Data Set, before uploading.")
                 #get list of ds_name for current company
                 ds_names=get_dsname(int(st.session_state['AuditID']))
                 if ds_names.empty:
@@ -70,14 +70,14 @@ def show_masters():
                 else:
                     col1, col2 =st.columns(2)
                     with col1:
-                        st.info("Select Data Set to add Records...")
+                        st.success("Select Data Set to add Records...")
                         ds_name=st.selectbox("Select Data Set Name...",ds_names,key="sb0")
                         st.write("Current Data Set")
                         dsname=f"{comp_name}_{st.session_state['AuditID']}_{ds_name}"
                         df=get_entire_dataset(dsname)
                         st.dataframe(df)
                     with col2:
-                        st.info("Check Data to Add to Current Data Set")
+                        st.success("Check Data to Add to Current Data Set")
                         uploaded_file = st.file_uploader("Upload a xlsx file",type='xlsx',key="1uploadfile1")
                         
                     
@@ -96,7 +96,8 @@ def show_masters():
                 
                 
         elif master_options=='Add Check List':
-                st.title("Add Verification Check List for Data Set")
+                st.header("Add Verification Check List for Data Set")
+                st.markdown("""---""")
                 #get list of ds_name for current company
                 ds_names=get_dsname(int(st.session_state['AuditID']))
                 ds_name=st.selectbox("Select Data Set Name...",ds_names,key="sb1")
@@ -126,7 +127,7 @@ def show_masters():
                             sta=add_verification_criteria(Crtiteria,ds_name,comp_name,risk_weight,risk_category)
                             
                         else:
-                            st.error('Criteria can not be blank.')
+                            st.write('Criteria can not be blank.')
                     
                 with st.expander("View Verification Criteria"):
                     st.header("Verification Criteria")
@@ -135,7 +136,7 @@ def show_masters():
                         
                                     
         elif master_options=='Set Risk Weights for Data Set':
-            st.title("Assign Risk Weights for each Field")
+            st.header("Assign Risk Weights for each Field")
                 #st.dataframe(Chek_List,width=1000)
             ds_names=get_dsname(int(st.session_state['AuditID']))
             ds=st.selectbox("Select Data Set Name...",ds_names,key="sbrisk1")
@@ -175,14 +176,14 @@ def show_masters():
                     #veri_df=get_verification(ds_name,int(st.session_state['AuditID']))
                     st.dataframe(riskdf)
         else:
-                st.title("Compare Audited Dataset with Current Version of Dataset")
+                st.header("Compare Audited Dataset with Current Version of Dataset")
                 st.info("Upload Current Version of Dataset..")
-                st.warning("Check ...Data Structure is Excatly same, with same colum names")
+                st.info("Check ...Data Structure is Excatly same, with same colum names")
                 ds_names=get_dsname(int(st.session_state['AuditID']))
                 ds=st.selectbox("Select Data Set Name...",ds_names,key="sb2")
                 #ds_name=ds[0]
                 ds_name=f"{comp_name}_{st.session_state['AuditID']}_{ds}"
-                st.write(ds_name)
+                #st.write(ds_name)
                 uploaded_file = st.file_uploader("Upload a xlsx file",type='xlsx',key="uploadfile2")
 
                 if uploaded_file is not None:
@@ -195,9 +196,9 @@ def show_masters():
                     #df.drop(columns=['Status','index','Sampled'],inplace=True)
                     df.drop(columns=['Status','index','Sampled'],inplace=True)
                     #df.sort_index(inplace=True)
-                    st.write("Audited Dataset")
+                    st.success("Audited Dataset")
                     st.dataframe(df)
-                    st.write("Current Version of Dataset")
+                    st.success("Current Version of Dataset")
                     st.dataframe(dataframe_new)
                     dfcol1=df.columns.tolist()
                     dfcol2=dataframe_new.columns.tolist()

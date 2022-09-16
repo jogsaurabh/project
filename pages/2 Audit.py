@@ -59,7 +59,7 @@ def show_audit():
             tab1,tab2 =st.tabs(["   Vouching & Verification  ","   Analytical & Other Reviews   "])
             with tab1:
                 st.header(d_sname)
-                st.subheader("Select Row to Audit")
+                st.success("Select Row to Audit")
                 #st.dataframe(df)
                     #builds a gridOptions dictionary using a GridOptionsBuilder instance.
                 builder = GridOptionsBuilder.from_dataframe(df)
@@ -105,7 +105,7 @@ def show_audit():
                             #builder_Audit.configure_default_column(editable=True)
                             builder_Audit.configure_columns((['Audit_Value','Cause','Effect']),editable=True)
                             go_audit = builder_Audit.build()
-                            st.subheader("Vouching...If values are wrong...Double click to enter correct value.")
+                            st.success("Vouching...If values are wrong...Double click to enter correct value.")
                             #audited=AgGrid(selected_df, gridOptions=go_audit,update_mode= GridUpdateMode.VALUE_CHANGED,height = 80)
                             audited=AgGrid(selected_df, gridOptions=go_audit,update_mode=(GridUpdateMode.VALUE_CHANGED|GridUpdateMode.SELECTION_CHANGED))
                             #st.write(veri
@@ -117,10 +117,12 @@ def show_audit():
                         with colum2:
                             currentime=datetime.now()
                             #Verification
-                            st.subheader("Check Verification if Criteria is met, else keep Unchecked.")
+                            st.success("Check Verification if Criteria is met, else keep Unchecked.")
                             df_verif=get_verification(d_sname,int(st.session_state['AuditID']))
                             df_verif["Cause"]=''
                             df_verif["Effect"]=''
+                            df_verif.drop(['Risk_Weight','Risk_Category'], axis=1,inplace=True)
+                            
                             builder_verif=GridOptionsBuilder.from_dataframe(df_verif)
                             builder_verif.configure_selection(selection_mode="multiple",use_checkbox=True)
                             builder_verif.configure_columns((['Cause','Effect']),editable=True)
@@ -225,12 +227,12 @@ def show_audit():
                         
 
             with tab2:
-                st.title(d_sname)
+                st.header(d_sname)
                 #add Reveiew Remark
                 #show in DF
-                st.header("Add Analytical Review & Other Comments for Data Set...")
+                st.success("Add Analytical Review & Other Comments for Data Set...")
                 # add verification list
-                st.markdown("""---""")
+                #st.markdown("""---""")
                 Reveiew=get_ar_for_ds(d_sname)              
                 with st.form("Analytical Review & Other Comments",clear_on_submit=True):
                         st.header("Add Comments")
@@ -259,18 +261,18 @@ def show_audit():
                             else:
                                 st.error("Criteria & Condition are Mandatory fields")
                 with st.expander("Analytical Review & Other Comments"):
-                    st.header(f"Analytical Review & Other Comments for {d_sname}")
+                    st.success(f"Analytical Review & Other Comments for {d_sname}")
                     st.dataframe(Reveiew)
                     #reviws_table=st.table(Reveiew)
                 st.markdown("""---""")   
-                
+                st.info("Analyse Data")
                 ds=get_entire_dataset(ds_name)
                 ds=get_entire_dataset(ds_name)
                 with st.expander("View Statistical Summary"):
-                    st.header(f"Stats Summary for {d_sname}")
+                    st.success(f"Stats Summary for {d_sname}")
                     st.dataframe(ds.describe())
                 with st.expander('Analyse Data Set'):
-                    st.header(f"Data Set for {d_sname}")
+                    st.success(f"Data Set for {d_sname}")
                     builder = GridOptionsBuilder.from_dataframe(ds)
                     builder.configure_pagination(enabled=True,paginationPageSize=15,paginationAutoPageSize=False)
                     go = builder.build()
@@ -282,7 +284,7 @@ def show_audit():
             
                 
                 with st.expander('Generate Detailed Statistical Analysis Report'):
-                    st.header(f"Statistical Analysis Report for {d_sname}")
+                    st.success(f"Statistical Analysis Report for {d_sname}")
                     #Click to generate pandas profiling report
                     if st.button("Generate Analytical Report"):
                         

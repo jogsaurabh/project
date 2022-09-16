@@ -189,7 +189,7 @@ def show_report():
          #download word file report
             if st.button("Generate Report in Word",key="grw"):
                 fname=f"{ds}{comp_name}{st.session_state['AuditID']}"
-                st.write(fname)
+                #st.write(fname)
                 # 2. Create a template Environment
                 env = Environment(loader=FileSystemLoader('templates'))
                 # 3. Load the template from the Environment

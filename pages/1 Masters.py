@@ -4,7 +4,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 #from main import show_login_page,LoggedOut_Clicked
-from functions import update_risk_weights,get_user_rights,get_active_users,add_datato_ds,get_verification,get_audit
+from functions import update_verification_criteria,update_risk_weights,get_user_rights,get_active_users,add_datato_ds,get_verification,get_audit
 from functions import get_risk_weights_ds_vouching,create_user,check_login,assign_user_rights,create_company,get_company_names,get_risk_weights_ds
 from functions import create_dataset,add_verification_criteria,get_dsname,get_entire_dataset,get_auditee_comp
 import sqlite3
@@ -31,7 +31,7 @@ def show_masters():
         with st.sidebar.markdown("# Masters "):
             master_options = st.radio(
             'Masters- Dataset',
-            ('Add New Data Set', 'Add Records to Data Set','Add Check List','Set Risk Weights for Data Set','Compare with Audited Dataset'))            
+            ('Add New Data Set', 'Add Records to Data Set','Verification Check List','Set Risk Weights for Data Set','Compare with Audited Dataset'))            
         if master_options=='Add New Data Set':
             
             st.header("Add New Data Set")
@@ -75,6 +75,7 @@ def show_masters():
                         st.write("Current Data Set")
                         dsname=f"{comp_name}_{st.session_state['AuditID']}_{ds_name}"
                         df=get_entire_dataset(dsname)
+                        df.drop(columns=['Status','Sampled'],inplace=True)
                         st.dataframe(df)
                     with col2:
                         st.success("Check Data to Add to Current Data Set")
@@ -82,64 +83,69 @@ def show_masters():
                         
                     
                         if uploaded_file is not None:
-                                st.write("Data to Add ")
+                                #st.write("Data to Add ")
                                 #filename=uploaded_file.name
                                 dataframe = pd.read_excel(uploaded_file,)
-                                #dataframe['index'] = range(880, 880+len(dataframe))
+                                
                                 dfmax=df['index'].max()
                                 dataframe.insert(0,"index",range(dfmax+1, dfmax+1 + len(dataframe)))
                                 st.dataframe(dataframe)
-                                
-                                if st.button("Append to Data Set",key="b11"):
-                                    message=add_datato_ds(dataframe,ds_name,comp_name)
-                                    st.success(message)
+                                dfcol1=df.columns.tolist()
+                                dfcol2=dataframe.columns.tolist()
+                                if dfcol1==dfcol2: 
+                                    if st.button("Append to Data Set",key="b11"):
+                                        message=add_datato_ds(dataframe,ds_name,comp_name)
+                                        st.success(message)
+                                else:
+                                    st.warning("Mismatch in Colums of two Datasets...please upload Data set with same structure.")
                 
                 
-        elif master_options=='Add Check List':
-                st.header("Add Verification Check List for Data Set")
-                st.markdown("""---""")
-                #get list of ds_name for current company
+        elif master_options=='Verification Check List':
+                st.header("Add Verification Check List")
+
+                st.success("Select Data Set Name")
                 ds_names=get_dsname(int(st.session_state['AuditID']))
-                ds_name=st.selectbox("Select Data Set Name...",ds_names,key="sb1")
-                #if st.button("View Current check list",key="cc1"):
-                    #veri_df=get_verification(ds_name,int(st.session_state['AuditID']))
-                    #st.dataframe(veri_df)
-                #Chek_List=pd.DataFrame()
+                ds_name=st.selectbox("",ds_names,key="sb1")
+                    #if st.button("View Current check list",key="cc1"):
+                        #veri_df=get_verification(ds_name,int(st.session_state['AuditID']))
+                        #st.dataframe(veri_df)
+                    #Chek_List=pd.DataFrame()
                 with st.form("Verification Criteria",clear_on_submit=True):
-                    c1,c2 =st.columns(2)
-                    with c1:
-                        Crtiteria=st.text_area("Enter Verification Criteria")
-                    with c2:
-                        risk_weight=st.slider("Set Risk Weights",min_value=1,max_value=10,key='slider2')
-                        
-                        if risk_weight >=1 and risk_weight <=3:
-                            risk_category='Low'
-                        elif risk_weight >=4 and risk_weight <=7:
-                            risk_category='Medium'
-                        else:
-                            risk_category='High'
-                       
-                                        
-                    submitted = st.form_submit_button("Submit")
-                    if submitted:
-                        #add above to database
-                        if Crtiteria:
-                            sta=add_verification_criteria(Crtiteria,ds_name,comp_name,risk_weight,risk_category)
+                        c1,c2 =st.columns(2)
+                        with c1:
+                            Crtiteria=st.text_area("Enter Verification Criteria")
+                        with c2:
+                            risk_weight=st.slider("Set Risk Weights",min_value=1,max_value=10,key='slider2')
                             
-                        else:
-                            st.write('Criteria can not be blank.')
-                    
-                with st.expander("View Verification Criteria"):
-                    st.header("Verification Criteria")
-                    veri_df=get_verification(ds_name,int(st.session_state['AuditID']))
-                    st.dataframe(veri_df)
+                            if risk_weight >=1 and risk_weight <=3:
+                                risk_category='Low'
+                            elif risk_weight >=4 and risk_weight <=7:
+                                risk_category='Medium'
+                            else:
+                                risk_category='High'
                         
-                                    
+                                            
+                        submitted = st.form_submit_button("Submit")
+                        if submitted:
+                            #add above to database
+                            if Crtiteria:
+                                sta=add_verification_criteria(Crtiteria,ds_name,comp_name,risk_weight,risk_category)
+                                
+                            else:
+                                st.write('Criteria can not be blank.')
+                        
+                with st.expander("View Verification Criteria"):
+                        st.header("Verification Criteria")
+                        veri_df=get_verification(ds_name,int(st.session_state['AuditID']))
+                        st.dataframe(veri_df)
+                            
+                                                     
         elif master_options=='Set Risk Weights for Data Set':
-            st.header("Assign Risk Weights for each Field")
+            st.header("Update Risk Weights for each Field")
                 #st.dataframe(Chek_List,width=1000)
             ds_names=get_dsname(int(st.session_state['AuditID']))
-            ds=st.selectbox("Select Data Set Name...",ds_names,key="sbrisk1")
+            st.success('Select Data Set Name...')
+            ds=st.selectbox("",ds_names,key="sbrisk1")
             #fields=get_fields_names(f"{comp_name}_{st.session_state['AuditID']}_{ds}")
             #remove wher field is null
             

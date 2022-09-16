@@ -112,10 +112,10 @@ def show_update_audit_status():
                                 #st.write(selected)
                                 one ,two= st.columns(2)
                                 with one:
-                                    reply=st.text_area("Add Status Update Remarks to Selected Query",key="ta")
+                                    reply=st.text_area("Add Status Update Remarks to Selected Query",key="ta1")
                                 with two:
-                                    close=st.selectbox("Close / Pending",["Closed","Pending"],key="cq")
-                                submit=st.button("Submit",key="submitquery")
+                                    close=st.selectbox("Close / Pending",["Closed","Pending"],key="cq2")
+                                submit=st.button("Submit",key="submitquery2")
                                 if submit:
                                         currentime=datetime.now()
                                         id=int(selected[0]['Id'])

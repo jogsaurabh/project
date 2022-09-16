@@ -216,10 +216,10 @@ def create_dataset(df,table_name,comp_name,person_responsible):
         sqliteConnection.commit()
         cursor.close()
     except sqlite3.Error as error:
-        message=("Error while creating Data Set to sqlite", error)
+        st.error=("Error while creating Data Set to sqlite", error)
     except ValueError:
         message=("DS Name aready exist...You can create new Dataset with Other Name")
-        st.error("DS Name aready exist...You can create new Dataset with Other Name")
+        #st.error("DS Name aready exist...You can create new Dataset with Other Name")
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -257,7 +257,7 @@ def add_verification_criteria (Criteria,DsName,comp_name,risk_weight,risk_catego
         st.info(message_verify)
     except sqlite3.Error as error:
         message_verify=("Error while creating Data Set Criteria", error)
-        st.error(message_verify)
+        st.write(message_verify)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -287,7 +287,7 @@ def get_dsname_personresponsible(auditid,pr):
     try:
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
-        query=f"SELECT DS,person_responsible from DSName where Audit_id='{auditid}' AND person_responsible='{pr}'"
+        query=f"SELECT DS from DSName where Audit_id='{auditid}' AND person_responsible='{pr}'"
         sql_query=pd.read_sql_query(query,sqliteConnection)
         DSName = pd.DataFrame(sql_query)
         cursor.close()
@@ -673,13 +673,13 @@ def add_query_reply(id,reply):
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
         #update audit status
-        query=f"UPDATE Audit_Queries SET Reply ='{reply}' WHERE Id = {id}"
+        query=f"UPDATE Audit_Queries SET Reply ='{reply}', Reply_by='{st.session_state['User']}' WHERE Id = {id}"
         #query=f"SELECT Review from Audit_AR where DataSetName='{DsName}' AND CompanyName='{comp_name}'"
         #st.write(query)
         cursor.execute(query)
         sqliteConnection.commit()
         cursor.close()
-        updatereply=("Query Reply updated....")
+        updatereply=("Reply to Query is updated....")
     except sqlite3.Error as error:
         updatereply=("Error while Updating Query Status", error)
     finally:
@@ -695,7 +695,7 @@ def update_query_status(id,reply,close):
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
         #update audit status
-        query=f"UPDATE Audit_Queries SET status_udate_by ='{reply}',Status ='{close}' WHERE Id = {id}"
+        query=f"UPDATE Audit_Queries SET status_update_remarks ='{reply}',status_udate_by ='{st.session_state['User']}',Status ='{close}' WHERE Id = {id}"
         #query=f"SELECT Review from Audit_AR where DataSetName='{DsName}' AND CompanyName='{comp_name}'"
         #st.write(query)
         cursor.execute(query)
@@ -711,11 +711,58 @@ def update_query_status(id,reply,close):
             
     return updatereply
 
+
+def update_query_status_ar(id,reply,close):
+    
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        #update audit status
+        query=f"UPDATE Audit_AR SET status_update_remarks ='{reply}',status_update_by ='{st.session_state['User']}',Status ='{close}' WHERE Id = {id}"
+        #query=f"SELECT Review from Audit_AR where DataSetName='{DsName}' AND CompanyName='{comp_name}'"
+        #st.write(query)
+        cursor.execute(query)
+        sqliteConnection.commit()
+        cursor.close()
+        updatereply=("Query Status updated....")
+    except sqlite3.Error as error:
+        updatereply=("Error while Updating Query Status", error)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+            
+    return updatereply
+
+
+def add_query_reply_AR(id,reply):
+    
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        #update audit status
+        query=f"UPDATE Audit_AR SET reply ='{reply}',reply_by ='{st.session_state['User']}' WHERE Id = {id}"
+        #query=f"SELECT Review from Audit_AR where DataSetName='{DsName}' AND CompanyName='{comp_name}'"
+        #st.write(query)
+        cursor.execute(query)
+        sqliteConnection.commit()
+        cursor.close()
+        updatereply=("Query Reply updated....")
+    except sqlite3.Error as error:
+        updatereply=("Error while Updating Query Reply", error)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+            
+    return updatereply
+
+
 def get_risk_weights_ds_vouching(ds_name):
     try:
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
-        query=f"SELECT Criteria,Risk_Weight,Risk_Category from Risk_Master where DataSetName='{ds_name}' and Audit_id={int(st.session_state['AuditID'])} and Field IS NOT NULL"
+        query=f"SELECT Criteria,Risk_Weight,Risk_Category from Risk_Master where DataSetName='{ds_name}' and Audit_id={int(st.session_state['AuditID'])}"
         sql_query=pd.read_sql_query(query,sqliteConnection)
         df = pd.DataFrame(sql_query)
         #st.write(query)
@@ -776,6 +823,31 @@ def update_risk_weights(criteria,DsName,auditid,risk_weight,risk_category):
     return auditstatus
 
 
+def update_verification_criteria(criteria,old_criteria,DsName,auditid,risk_weight,risk_category):
+     
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        #update audit status
+        query=f"UPDATE DSCriteria SET Verification_Criteria={criteria}, Risk_Weight={risk_weight} , Risk_Category ='{risk_category}' WHERE Verification_Criteria='{old_criteria}' AND audit_id ={auditid} AND DataSetName ='{DsName}'"
+        #query=f"UPDATE  SET Status ='Audited' WHERE `index` = {data_id}"
+        #query=f"SELECT Review from Audit_AR where DataSetName='{DsName}' AND CompanyName='{comp_name}'"
+        #st.write(query)
+        cursor.execute(query)
+        sqliteConnection.commit()
+        cursor.close()
+        auditstatus=("Verification Criteria updated....")
+        st.info(auditstatus)
+    except sqlite3.Error as error:
+        auditstatus=("Error while Updating Verification Criteria", error)
+        #st.error(auditstatus)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+            
+    return auditstatus
+
 def get_dataset_values(DSname):
     #this is for auditing
     try:
@@ -786,17 +858,23 @@ def get_dataset_values(DSname):
         query=f"SELECT count(*) from '{DSname}'"
         cursor.execute(query)
         total_records=cursor.fetchone()
-        total_records=int(total_records[0])
+        if total_records[0]!= None:
+            total_records=int(total_records[0])
         #st.write(total_records,total_records)
-        values['total_records']=total_records
+            values['total_records']=total_records
+        else:
+            values['total_records']=0
         #get total count of DS where status=Audited
         query=f"SELECT count(*) from '{DSname}' WHERE status= 'Audited'"
         cursor.execute(query)
         total_audited=cursor.fetchone()
+        if total_audited[0]!= None:
+            #st.write(total_audited)
+            total_audited=int(total_audited[0])
         #st.write(total_audited)
-        total_audited=int(total_audited[0])
-        #st.write(total_audited)
-        values['total_audited']=total_audited
+            values['total_audited']=total_audited
+        else:
+            values['total_audited']=0
         #st.write(values)
         cursor.close()
     except sqlite3.Error as error:
@@ -824,6 +902,8 @@ def get_audit_values(Audit_id):
             total_queries_vv=int(total_records[0])
         #st.write(total_records,total_records)
             values['total_queries_vv']=total_queries_vv
+        else:
+            values['total_queries_vv']=0
         
         #get total count of audit queries AR
         query=f"SELECT count(*) from Audit_AR WHERE status= 'Pending' AND Audit_Id='{Audit_id}'"
@@ -833,6 +913,8 @@ def get_audit_values(Audit_id):
             total_queries_ar=int(total_records[0])
         #st.write(total_records,total_records)
             values['total_queries_ar']=total_queries_ar
+        else:
+            values['total_queries_ar']=0
        
         cursor.close()
     except sqlite3.Error as error:
@@ -859,6 +941,8 @@ def get_values_id_dsn(Audit_id,datasetname):
             total_queries_vv=int(total_records[0])
         #st.write(total_records,total_records)
             values['total_queries_vv']=total_queries_vv
+        else:
+            values['total_queries_vv']=0
         
         #get total count of audit queries AR
         query=f"SELECT count(*) from Audit_AR WHERE status= 'Pending' AND Audit_id='{Audit_id}'AND DataSetName='{datasetname}'"
@@ -868,6 +952,8 @@ def get_values_id_dsn(Audit_id,datasetname):
             total_queries_ar=int(total_records[0])
         #st.write(total_records,total_records)
             values['total_queries_ar']=total_queries_ar
+        else:
+            values['total_queries_ar']=0
        
        #get risk score for Queries of DS
         query=f"SELECT sum (Risk_Weight) FROM queries_risk WHERE Audit_id='{Audit_id}'AND DataSetName='{datasetname}'"
@@ -878,6 +964,8 @@ def get_values_id_dsn(Audit_id,datasetname):
             auditrisk_audited=int(total_records[0])
             #st.write(total_records,total_records)
             values['auditrisk_audited']=auditrisk_audited
+        else:
+            values['auditrisk_audited']=0
         
         #get risk score for Dataset
         query=f"SELECT sum (Risk_Weight) FROM Risk_Master WHERE Audit_id='{Audit_id}'AND DataSetName='{datasetname}'"
@@ -887,6 +975,8 @@ def get_values_id_dsn(Audit_id,datasetname):
             auditrisk_total=int(total_records[0])
          #st.write(total_records,total_records)
             values['auditrisk_total']=auditrisk_total
+        else:
+            values['auditrisk_total']=0
         cursor.close()
         #total Risk for DS= Total audited records * above
     except sqlite3.Error as error:
@@ -905,7 +995,8 @@ def get_vv_quries(DSfilename,DSName,audit_id):
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
         query=f"""
-        SELECT b.*,a.Criteria, a.Condition, a.Cause, a.Effect, a.Risk_Weight, a.Risk_Category, a.Audited_By, a.Audited_on, a.reply, a.reply_by, a.reply_on, a.Field 
+        SELECT b.*,a.Id,a.Criteria, a.Condition, a.Cause, a.Effect, a.Risk_Weight, a.Risk_Category, a.Audited_By, a.Audited_on, a.reply, a.reply_by, a.reply_on, 
+            a.status_udate_by,a.status_update_remarks,a.Field
             FROM queries_risk a LEFT JOIN  "{DSfilename}" b ON a.Data_Id = b."index" WHERE DataSetName='{DSName}'
             AND audit_id ={audit_id} order by b."index";"""
         sql_query=pd.read_sql_query(query,sqliteConnection)
@@ -925,8 +1016,8 @@ def get_ar_queries(ds_name):
     try:
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
-        query=f"""SELECT Criteria,Condition,Cause,Effect,Risk_Weight,Risk_Category,created_by,
-        created_on,reply,reply_by,reply_on        
+        query=f"""SELECT Id,Criteria,Condition,Cause,Effect,Risk_Weight,Risk_Category,created_by,
+        created_on,reply,reply_by,reply_on,status_update_remarks,status_update_by 
         from Audit_AR where DataSetName='{ds_name}' and Audit_id='{int(st.session_state['AuditID'])}'
         and status='Pending'"""
         sql_query=pd.read_sql_query(query,sqliteConnection)
@@ -991,13 +1082,18 @@ def get_Summary_audit_values_riskweight(Audit_id,ds):
     try:
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
-               
+        #for V&V     
         query=f"SELECT Criteria,sum(Risk_Weight) as 'Total Risk Weight' FROM queries_risk WHERE Audit_id='{Audit_id}' AND DataSetName='{ds}' GROUP BY Criteria"
         sql_query=pd.read_sql_query(query,sqliteConnection)
         df = pd.DataFrame(sql_query)
-        #cursor.execute(query)
-        
+        #for AR
+        query=f"SELECT Criteria,sum(Risk_Weight) as 'Total Risk Weight' FROM Audit_AR WHERE Audit_id='{Audit_id}' AND DataSetName='{ds}' GROUP BY Criteria"
+        sql_query=pd.read_sql_query(query,sqliteConnection)
+        dfar = pd.DataFrame(sql_query)
         cursor.close()
+        #merge 2 df
+        df=df.append(dfar,ignore_index=True)
+        
     except sqlite3.Error as error:
         message=("Error while creating Data Set Criteria", error)
         st.error(message)

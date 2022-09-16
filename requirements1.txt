@@ -4,3 +4,5 @@ streamlit-pandas-profiling
 streamlit-aggrid
 pyarrow
 plotly==5.9.0
+docxtpl
+htmldocx

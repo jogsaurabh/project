@@ -35,7 +35,13 @@ def show_masters():
         if master_options=='Add New Data Set':
             
             st.header("Add New Data Set")
-            st.success(f"1) Check that - First Row contains column Headings..\n2) File is of - .xlsx type\n3) File contains only 1 sheet")
+            ftype=st.radio("Select File Type",options=['CSV','XLSX'])
+            if ftype=='CSV':
+                st.success(f"1) Check that - First Row contains column Headings..\n2) File is of - .csv type\n3) No column should have name - index")
+            else:
+                st.success(f"1) Check that - First Row contains column Headings..\n2) File is of - .xlsx type\n3) File contains only 1 sheet\n4) No column should have name - index")
+            
+            #st.success(f"1) Check that - First Row contains column Headings..\n2) File is of - .xlsx type\n3) File contains only 1 sheet")
             #with st.form("New Dataset",clear_on_submit=True):
             #st.warning("Check ...First Column is Primary Key / Unique")
             auditee=get_auditee_comp()
@@ -45,23 +51,37 @@ def show_masters():
             else:
                 table_name=st.text_input("Enter Name of Data Set",key="tablename1")
                 person_responsible=st.selectbox("Select Auditee, who will answer Queries",auditee,key="sbperson_responsible")
-                uploaded_file = st.file_uploader("Upload a xlsx file",type='xlsx',key="uploadfile1")
+                if ftype=='CSV':
+                    uploaded_file = st.file_uploader("Upload a file",type='csv',key="uploadfile2")
+                else:
+                    uploaded_file = st.file_uploader("Upload a file",type='xlsx',key="uploadfile1")
                 if uploaded_file is not None:
                         st.write(uploaded_file.name)
                         filename=uploaded_file.name
-                        dataframe = pd.read_excel(uploaded_file)
+                        if ftype=='CSV':
+                            dataframe = pd.read_csv(uploaded_file,encoding= 'unicode_escape')
+                        else:                            
+                            dataframe = pd.read_excel(uploaded_file)
                         st.dataframe(dataframe)
-                        if st.button("Create Data Set",key="b1"):
-                            if table_name:
-                                message=create_dataset(dataframe,table_name,comp_name,person_responsible)
-                                st.success(message) 
-                                #masters.empty()       
-                            else:
-                                st.error("Please enter Data Set Name")
-                                #masters.empty()
-                                
+                        #check if colum name=index or Index
+                        if 'Index' in dataframe.columns or 'index' in dataframe.columns:
+                            st.error(f'Column name with "Index" or "index" not allowed...Please change colum Name')
+                        else:
+                            if st.button("Create Data Set",key="b1"):
+                                if table_name:
+                                    message=create_dataset(dataframe,table_name,comp_name,person_responsible)
+                                    st.success(message) 
+                                    #masters.empty()       
+                                else:
+                                    st.error("Please enter Data Set Name")
+                                    #masters.empty()
+                        #del & clear DataFrame
+                        del [[dataframe]]
+                        dataframe=pd.DataFrame()   
         elif master_options=='Add Records to Data Set':
                 st.header("Add data to Existing Data Set")
+                ftype=st.radio("Select File Type",options=['CSV','XLSX'])
+                
                 st.info("Check that all colums are Exactly same as per Existing Data Set, before uploading.")
                 #get list of ds_name for current company
                 ds_names=get_dsname(int(st.session_state['AuditID']))
@@ -79,14 +99,22 @@ def show_masters():
                         st.dataframe(df)
                     with col2:
                         st.success("Check Data to Add to Current Data Set")
-                        uploaded_file = st.file_uploader("Upload a xlsx file",type='xlsx',key="1uploadfile1")
+                        if ftype=='CSV':
+                            uploaded_file = st.file_uploader("Upload a file",type='csv',key="uploadfile22")
+                        else:
+                            uploaded_file = st.file_uploader("Upload a file",type='xlsx',key="uploadfile11")
+                
+                        #uploaded_file = st.file_uploader("Upload a file",type='xlsx',key="1uploadfile1")
                         
                     
                         if uploaded_file is not None:
                                 #st.write("Data to Add ")
                                 #filename=uploaded_file.name
-                                dataframe = pd.read_excel(uploaded_file,)
-                                
+                                #dataframe = pd.read_excel(uploaded_file,)
+                                if ftype=='CSV':
+                                    dataframe = pd.read_csv(uploaded_file,encoding= 'unicode_escape')
+                                else:                            
+                                    dataframe = pd.read_excel(uploaded_file)
                                 dfmax=df['index'].max()
                                 dataframe.insert(0,"index",range(dfmax+1, dfmax+1 + len(dataframe)))
                                 st.dataframe(dataframe)
@@ -98,7 +126,10 @@ def show_masters():
                                         st.success(message)
                                 else:
                                     st.warning("Mismatch in Colums of two Datasets...please upload Data set with same structure.")
-                
+                                #del & clear DataFrame
+                                del [[dataframe,df]]
+                                dataframe=pd.DataFrame()
+                                df=pd.DataFrame()  
                 
         elif master_options=='Verification Check List':
                 st.header("Add Verification Check List")
@@ -183,19 +214,30 @@ def show_masters():
                     st.dataframe(riskdf)
         else:
                 st.header("Compare Audited Dataset with Current Version of Dataset")
-                st.info("Upload Current Version of Dataset..")
-                st.info("Check ...Data Structure is Excatly same, with same colum names")
+                st.success("1)Upload Current Version of Dataset...\n2)Check...Data Structure is Excatly same, with same colum names")
+                #st.info("Check ...Data Structure is Excatly same, with same colum names")
+                ftype=st.radio("Select File Type",options=['CSV','XLSX'])
+                
                 ds_names=get_dsname(int(st.session_state['AuditID']))
                 ds=st.selectbox("Select Data Set Name...",ds_names,key="sb2")
                 #ds_name=ds[0]
                 ds_name=f"{comp_name}_{st.session_state['AuditID']}_{ds}"
                 #st.write(ds_name)
-                uploaded_file = st.file_uploader("Upload a xlsx file",type='xlsx',key="uploadfile2")
+                if ftype=='CSV':
+                    uploaded_file = st.file_uploader("Upload a file",type='csv',key="uploadfile22")
+                else:
+                    uploaded_file = st.file_uploader("Upload a file",type='xlsx',key="uploadfile11")
+                
+                #uploaded_file = st.file_uploader("Upload a xlsx file",type='xlsx',key="uploadfile2")
 
                 if uploaded_file is not None:
-                    st.write(uploaded_file.name)
+                    #st.write(uploaded_file.name)
                     #filename=uploaded_file.name
-                    dataframe_new = pd.read_excel(uploaded_file)
+                    if ftype=='CSV':
+                        dataframe_new = pd.read_csv(uploaded_file,encoding= 'unicode_escape')
+                    else:                            
+                        dataframe_new = pd.read_excel(uploaded_file)
+                    #dataframe_new = pd.read_excel(uploaded_file)
                     #dataframe_new=dataframe_new.index.name = 'id'
                     #get audited DF
                     df=get_entire_dataset(ds_name)
@@ -203,9 +245,11 @@ def show_masters():
                     df.drop(columns=['Status','index','Sampled'],inplace=True)
                     #df.sort_index(inplace=True)
                     st.success("Audited Dataset")
-                    st.dataframe(df)
+                    with st.expander(""):
+                        st.dataframe(df)
                     st.success("Current Version of Dataset")
-                    st.dataframe(dataframe_new)
+                    with st.expander(""):
+                        st.dataframe(dataframe_new)
                     dfcol1=df.columns.tolist()
                     dfcol2=dataframe_new.columns.tolist()
                     #indexkey=df.columns[0]

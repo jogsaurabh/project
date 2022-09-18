@@ -111,7 +111,7 @@ def create_company(comp_name, com_address,com_email,com_mobile,com_person):
     except sqlite3.Error as error:
         message_verify=("Error while creating New Company", error)
         st.info(error)
-        st.info(comp_name)
+        #st.info(comp_name)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -202,6 +202,8 @@ def create_dataset(df,table_name,comp_name,person_responsible):
         cursor.close()
         # add default risk to risk master table
         #get list of columns in df
+        sqliteConnection.close()
+        sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
         cols=list(df.columns)
         risk_df=pd.DataFrame(cols,columns=['Field'])
@@ -210,17 +212,19 @@ def create_dataset(df,table_name,comp_name,person_responsible):
         risk_df['created_by']=st.session_state['User']
         risk_df['created_on']=currentime
         risk_df['Criteria']=risk_df['Field']+': should be Correct'
-        st.dataframe(risk_df)
+        #st.dataframe(risk_df)
         risk_df.to_sql("Risk_Master",sqliteConnection,if_exists='append', index=False)
         #st.write('okkkkkk')
         sqliteConnection.commit()
         cursor.close()
     except sqlite3.Error as error:
         st.error=("Error while creating Data Set to sqlite", error)
+        message="Error in Dataset Creation"
     except ValueError:
         message=("DS Name aready exist...You can create new Dataset with Other Name")
         #st.error("DS Name aready exist...You can create new Dataset with Other Name")
     finally:
+        
         if sqliteConnection:
             sqliteConnection.close()
             #message=("The SQLite connection is closed")

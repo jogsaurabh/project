@@ -207,7 +207,8 @@ def show_report():
                 chart1.update_layout(
                         plot_bgcolor="rgba(0,0,0,0)")
                         #xaxis=(dict(showgrid=False)))
-                pio.write_image(chart1,'chart1.png')
+                fchart1=f"{fname}c1.png"
+                pio.write_image(chart1,fchart1)
                 #st.plotly_chart(chart1,use_container_width=True)
                 
                 #second chart
@@ -223,7 +224,8 @@ def show_report():
                 chart2.update_layout(
                         plot_bgcolor="rgba(0,0,0,0)")
                         #xaxis=(dict(showgrid=False)))
-                pio.write_image(chart2,'chart2.png')
+                fchart2=f"{fname}c2.png"
+                pio.write_image(chart1,fchart2)
                 #st.plotly_chart(chart1,use_container_width=True)
                 
                 
@@ -238,11 +240,11 @@ def show_report():
                                         AuditedRiskScore=auditrisk,
                                         RiskPercentage=riskpercent,
                                         DF1_heading=f"Query Summary for: {ds}",
-                                        dataurl1='chart1.png',                                
+                                        dataurl1=fchart1,                                
                                         df1=auditdf_1.to_html(),
                                         DF2_heading=f"Risk Based Audit Summary for: {ds}",
                                         df2=auditdf_r.to_html(),
-                                        dataurl2='chart2.png')
+                                        dataurl2=fchart2)
                                         
                 #docx to rport
                 document = Document()

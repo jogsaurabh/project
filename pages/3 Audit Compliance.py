@@ -4,6 +4,7 @@ from functions import create_user,check_login,get_dsname_personresponsible,assig
 from functions import update_query_status_ar,get_ar_queries,get_vv_quries,create_dataset,add_verification_criteria,get_dsname,get_entire_dataset,get_auditee_comp
 from functions import add_query_reply_AR,get_dataset,update_query_status,add_analytical_review,insert_vouching,update_audit_status,get_ar_for_ds,add_query_reply
 import pandas as pd
+import os
 import streamlit as st
 from PIL import Image
 image = Image.open('autoaudit_t.png')
@@ -63,16 +64,23 @@ def show_update_audit_status():
                 
                 if selected:
                     #st.write(selected)
+                    currentremark=selected[0]['status_update_remarks']
+                    currentquryreply=selected[0]['Reply']
                     one ,two= st.columns(2)
                     with one:
-                        reply=st.text_area("Add Status Update Remarks to Selected Query",key="ta")
+                        "Auditee Reply:-"
+                        st.warning(currentquryreply)
+                        "Current Remarks:-"
+                        st.warning(currentremark)
+                       
                     with two:
+                        reply=st.text_area("Add Status Update Remarks to Selected Query",key="ta")
                         close=st.selectbox("Close / Pending",["Closed","Pending"],key="cq")
                     submit=st.button("Submit",key="submitquery")
                     if submit:
                             currentime=datetime.now()
                             id=int(selected[0]['Id'])
-                            currentremark=selected[0]['status_update_remarks']
+                            #currentremark=selected[0]['status_update_remarks']
                             if currentremark is None:
                                 currentremark=""
                                 reply=f"{reply}-(by- {st.session_state['User']} , on {currentime})"
@@ -110,16 +118,31 @@ def show_update_audit_status():
                             
                             if selected:
                                 #st.write(selected)
+                                currentremark=selected[0]['status_update_remarks']
+                                currentquryreply=selected[0]['reply']
+                                filename=selected[0]['Review_File']
+                                rev_filename=f"{(st.session_state['AuditID'])}{d_sname}_{filename}"
+                                
+                                if filename:
+                                    
+                                    with open(os.path.join("rev_files",rev_filename), 'rb') as f:
+                                        st.download_button('Download Attachment', f, file_name=filename,key="reveiewdl")    
+                  
                                 one ,two= st.columns(2)
+                                
                                 with one:
-                                    reply=st.text_area("Add Status Update Remarks to Selected Query",key="ta1")
+                                    "Auditee Reply:-"
+                                    st.warning(currentquryreply)
+                                    "Current Remarks:-"
+                                    st.warning(currentremark)
                                 with two:
+                                    reply=st.text_area("Add Status Update Remarks to Selected Query",key="ta1")
                                     close=st.selectbox("Close / Pending",["Closed","Pending"],key="cq2")
                                 submit=st.button("Submit",key="submitquery2")
                                 if submit:
                                         currentime=datetime.now()
                                         id=int(selected[0]['Id'])
-                                        currentremark=selected[0]['status_update_remarks']
+                                        #currentremark=selected[0]['status_update_remarks']
                                         if currentremark is None:
                                             currentremark=""
                                             reply=f"{reply}-(by- {st.session_state['User']} , on {currentime})"
@@ -238,6 +261,17 @@ def show_auditee():
                 
                 if selected:
                     #st.write(selected)
+                    currentremark=selected[0]['Reply']
+                    replyremarks=selected[0]['status_update_remarks']
+                    
+                    co1,co2 =st.columns(2)
+                    with co1:
+                        "Current Auditee Reply:-"
+                        st.warning(currentremark)
+                        #st.write(selected)
+                    with co2:
+                        "Auditors Remarks for Reply:-"
+                        st.warning(replyremarks)
                     reply=st.text_area("Add Reply to Selected Query",key="ta")
                     submit=st.button("Submit",key="submitquery")
                     if submit:
@@ -276,16 +310,34 @@ def show_auditee():
                 #st.dataframe(pending.loc[:, ['DataSetName','Field','Audit_Value','Remarks','Verification','Audit_Verification','Reply','status_update_remarks']])
                 
                 if selected:
-                    #st.write(selected)
+                    currentremark=selected[0]['reply']
+                    replyremarks=selected[0]['status_update_remarks']
+                    filename=selected[0]['Review_File']
+                    rev_filename=f"{(st.session_state['AuditID'])}{d_sname}_{filename}"
+                                
+                    if filename:
+                                    
+                        with open(os.path.join("rev_files",rev_filename), 'rb') as f:
+                            st.download_button('Download Attachment', f, file_name=filename,key="auditeedl")    
+                    
+                    co1,co2 =st.columns(2)
+                    with co1:
+                        "Current Auditee Reply:-"
+                        st.warning(currentremark)
+                        #st.write(selected)
+                    with co2:
+                        "Auditors Remarks for Reply:-"
+                        st.warning(replyremarks)
+                        #st.write(selected)
                     reply=st.text_area("Add Reply to Selected Query",key="ta1")
-                    submit=st.button("Submit",key="submitquery")
+                    submit=st.button("Submit",key="submitquery111")
                     if submit:
                         if not reply:
                             st.warning("Reply can not be Blank")
                         else:
                             currentime=datetime.now()
                             id=int(selected[0]['Id'])
-                            currentremark=selected[0]['reply']
+                            #currentremark=selected[0]['reply']
                             if currentremark is None:
                                 currentremark=""
                                 reply=f"{reply}-(by- {st.session_state['User']} , on {currentime})"

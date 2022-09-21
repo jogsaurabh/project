@@ -341,7 +341,7 @@ def get_verification(DSname,Audit_id):
         
     return df
 
-def add_analytical_review (criteria,condition,cause,effect,DsName,comp_name,risk_weight,risk_category):
+def add_analytical_review (criteria,condition,cause,effect,DsName,comp_name,risk_weight,risk_category,file_name):
     
     try:
         sqliteConnection = sqlite3.connect('autoaudit.db')
@@ -350,11 +350,11 @@ def add_analytical_review (criteria,condition,cause,effect,DsName,comp_name,risk
         #add DS name in table
         #table_name="AR_"+DsName
         sqlite_insert_with_param = f"""INSERT INTO Audit_AR
-                          (Criteria,Condition,Cause,Effect,DataSetName,CompanyName,Created_on,Risk_Weight,Risk_Category,created_by,Audit_Name,Audit_id) 
-                          VALUES (?,?,?,?,?,?,?,?,?,?,?,?);"""
+                          (Criteria,Condition,Cause,Effect,DataSetName,CompanyName,Created_on,Risk_Weight,Risk_Category,created_by,Audit_Name,Audit_id,Review_File) 
+                          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?);"""
         
         currentime=datetime.now()
-        data_tuple = (criteria,condition,cause,effect,DsName,comp_name,currentime,risk_weight,risk_category,st.session_state['User'],st.session_state['Audit'],int(st.session_state['AuditID']))
+        data_tuple = (criteria,condition,cause,effect,DsName,comp_name,currentime,risk_weight,risk_category,st.session_state['User'],st.session_state['Audit'],int(st.session_state['AuditID']),file_name)
         #st.info("Done2")
         
         cursor.execute(sqlite_insert_with_param, data_tuple)
@@ -369,7 +369,7 @@ def add_analytical_review (criteria,condition,cause,effect,DsName,comp_name,risk
         reviews=('Review Inserted')
     except sqlite3.Error as error:
         df=("Error while creating Data Set Criteria", error)
-        st.error(reviews)
+        st.error(df)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1021,7 +1021,7 @@ def get_ar_queries(ds_name):
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
         query=f"""SELECT Id,Criteria,Condition,Cause,Effect,Risk_Weight,Risk_Category,created_by,
-        created_on,reply,reply_by,reply_on,status_update_remarks,status_update_by 
+        created_on,reply,reply_by,reply_on,status_update_remarks,status_update_by,Review_File 
         from Audit_AR where DataSetName='{ds_name}' and Audit_id='{int(st.session_state['AuditID'])}'
         and status='Pending'"""
         sql_query=pd.read_sql_query(query,sqliteConnection)
@@ -1151,3 +1151,207 @@ def get_Summary_audit_values_riskcategory(Audit_id,ds):
             #message=("The SQLite connection is closed")
         
     return df
+
+def get_company_docs(comp_name):
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        query=f"SELECT * from Company_File where Company='{comp_name}'"
+        sql_query=pd.read_sql_query(query,sqliteConnection)
+        df = pd.DataFrame(sql_query)
+        cursor.close()
+    except sqlite3.Error as error:
+        df=("Error while getting Audit Reviews", error)
+        st.error(df)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+        
+    return df
+
+def add_comp_doc(title,remarks,file_ref,doc_type,comp_name):
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        
+        currentime=datetime.now()
+        sqlite_insert_with_param = """INSERT INTO Company_File
+                          (Title,Remarks,File_Ref,Document_Type,Company,Created_by,Created_on) 
+                          VALUES (?,?,?,?,?,?,?);"""
+        data_tuple = (title,remarks,file_ref,doc_type,comp_name,st.session_state['User'],currentime)
+        #st.info("Done2")
+        cursor.execute(sqlite_insert_with_param, data_tuple)
+        sqliteConnection.commit()
+        cursor.close()
+        st.info("Record Added...")
+        message_verify=("Record Added...")
+    except sqlite3.Error as error:
+        message_verify=("Error while creating New Company", error)
+        st.info(error)
+        #st.info(comp_name)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+            
+    return message_verify
+
+def del_comp_doc(id):
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        
+        #currentime=datetime.now()
+        sqlite_insert_with_param = f"DELETE FROM Company_File WHERE id = {id}"
+        #data_tuple = (title,remarks,file_ref,doc_type,comp_name,st.session_state['User'],currentime)
+        #st.info("Done2")
+        cursor.execute(sqlite_insert_with_param)
+        sqliteConnection.commit()
+        cursor.close()
+        st.info("Record Deleted...")
+        message_verify=("Record Deleted...")
+    except sqlite3.Error as error:
+        message_verify=("Error while creating New Company", error)
+        st.info(error)
+        #st.info(comp_name)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+            
+    return message_verify
+
+def modif_comp_doc(roid,title,remarks,file_ref,doc_type):
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        #update audit status
+        if file_ref==None:
+            query=f"""UPDATE Company_File  SET Title='{title}',Remarks ='{remarks}',Document_Type='{doc_type}'
+                WHERE id={roid} """
+        else:
+            query=f"""UPDATE Company_File  SET Title='{title}',Remarks ='{remarks}', File_Ref='{file_ref}' , Document_Type='{doc_type}'
+                WHERE id={roid} """
+            
+        #query=f"""UPDATE Company_File  SET Title='{title}',Remarks ='{remarks}', File_Ref='{file_ref}' , Document_Type='{doc_type}'
+            #WHERE id={roid} """
+        #query=f"UPDATE  SET Status ='Audited' WHERE `index` = {data_id}"
+        #query=f"SELECT Review from Audit_AR where DataSetName='{DsName}' AND CompanyName='{comp_name}'"
+        #st.write(query)
+        cursor.execute(query)
+        sqliteConnection.commit()
+        cursor.close()
+        auditstatus=("Record updated....")
+        st.info(auditstatus)
+    except sqlite3.Error as error:
+        auditstatus=("Error while Updating Record", error)
+        st.error(auditstatus)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+            
+    return auditstatus
+
+def get_audit_docs(auditid):
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        query=f"SELECT * from Audit_File where Audit_id='{auditid}'"
+        sql_query=pd.read_sql_query(query,sqliteConnection)
+        df = pd.DataFrame(sql_query)
+        cursor.close()
+    except sqlite3.Error as error:
+        df=("Error while getting Audit Reviews", error)
+        st.error(df)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+        
+    return df
+
+def add_audit_doc(title,remarks,file_ref,doc_type,audit_id):
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        
+        currentime=datetime.now()
+        sqlite_insert_with_param = """INSERT INTO Audit_File
+                          (Title,Remarks,File_Ref,Document_Type,Audit_id,Created_by,Created_on) 
+                          VALUES (?,?,?,?,?,?,?);"""
+        data_tuple = (title,remarks,file_ref,doc_type,audit_id,st.session_state['User'],currentime)
+        #st.info("Done2")
+        cursor.execute(sqlite_insert_with_param, data_tuple)
+        sqliteConnection.commit()
+        cursor.close()
+        st.info("Record Added...")
+        message_verify=("Record Added...")
+    except sqlite3.Error as error:
+        message_verify=("Error while creating New Company", error)
+        st.info(error)
+        #st.info(comp_name)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+            
+    return message_verify
+
+def del_audit_doc(id):
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        
+        #currentime=datetime.now()
+        sqlite_insert_with_param = f"DELETE FROM Audit_File WHERE id = {id}"
+        #data_tuple = (title,remarks,file_ref,doc_type,comp_name,st.session_state['User'],currentime)
+        #st.info("Done2")
+        cursor.execute(sqlite_insert_with_param)
+        sqliteConnection.commit()
+        cursor.close()
+        st.info("Record Deleted...")
+        message_verify=("Record Deleted...")
+    except sqlite3.Error as error:
+        message_verify=("Error while Deleting", error)
+        st.info(error)
+        #st.info(comp_name)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+            
+    return message_verify
+
+def modif_audit_doc(roid,title,remarks,file_ref,doc_type):
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        #update audit status
+        if file_ref==None:
+            query=f"""UPDATE Audit_File  SET Title='{title}',Remarks ='{remarks}',Document_Type='{doc_type}'
+                WHERE id={roid} """
+        else:
+            query=f"""UPDATE Audit_File  SET Title='{title}',Remarks ='{remarks}', File_Ref='{file_ref}' , Document_Type='{doc_type}'
+                WHERE id={roid} """
+            
+        #query=f"""UPDATE Company_File  SET Title='{title}',Remarks ='{remarks}', File_Ref='{file_ref}' , Document_Type='{doc_type}'
+            #WHERE id={roid} """
+        #query=f"UPDATE  SET Status ='Audited' WHERE `index` = {data_id}"
+        #query=f"SELECT Review from Audit_AR where DataSetName='{DsName}' AND CompanyName='{comp_name}'"
+        #st.write(query)
+        cursor.execute(query)
+        sqliteConnection.commit()
+        cursor.close()
+        auditstatus=("Record updated....")
+        st.info(auditstatus)
+    except sqlite3.Error as error:
+        auditstatus=("Error while Updating Record", error)
+        st.error(auditstatus)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+            
+    return auditstatus

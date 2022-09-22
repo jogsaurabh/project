@@ -3,17 +3,21 @@
 #from sys import audit
 #from turtle import onclick
 import os
-from email.policy import default
-from operator import index
-from tkinter import HORIZONTAL
+from jinja2 import Environment, FileSystemLoader
+#from email.policy import default
+#from operator import index
+#from sys import audit
+#from tkinter import HORIZONTAL
 from matplotlib.cbook import report_memory
 import streamlit as st
 #from streamlit import caching
 from datetime import datetime
-from functions import del_audit_doc,modif_comp_doc,get_company_docs,get_user_rights,get_active_users,add_datato_ds,get_verification,get_audit,add_audit_verification
+from docx import Document
+from htmldocx import HtmlToDocx
+from functions import modify_audit_summ,add_audit_summ,get_Audit_summ,get_audit_observations,del_audit_doc,modif_comp_doc,get_company_docs,get_user_rights,get_active_users,add_datato_ds,get_verification,get_audit,add_audit_verification
 from functions import create_user,check_login,get_dsname_personresponsible,assign_user_rights,create_company,get_company_names,get_pending_queries
 from functions import del_comp_doc,add_comp_doc,create_dataset,add_verification_criteria,get_dsname,get_entire_dataset,get_auditee_comp
-from functions import modif_audit_doc,add_audit_doc,get_audit_docs,get_dataset,add_analytical_review,insert_vouching,update_audit_status,get_ar_for_ds,add_query_reply
+from functions import del_audit_sum,modify_audit_observation,modif_audit_doc,add_audit_doc,get_audit_docs,get_dataset,add_analytical_review,insert_vouching,update_audit_status,get_ar_for_ds,add_query_reply
 import pandas as pd
 from PIL import Image
 image = Image.open('autoaudit_t.png')
@@ -28,11 +32,218 @@ st.image(image,width=250)
 st.markdown("""---""")
 audit_container=st.container()
 updatecontainer=st.container()
+cont_observation=st.container()
+cont_oaudit_summary=st.container()
 #st.write(f"User:-{st.session_state['username']}")
 #comp_name=st.session_state['Company']
-
-       
+def show_Audit_observations():
+    with cont_observation:
+        st.success('Update Audit Observations...')
+        auditid=int(st.session_state['AuditID'])
+        df=get_audit_observations(auditid)
+        builder = GridOptionsBuilder.from_dataframe(df)
+        builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=10)
+        builder.configure_selection(selection_mode="single",use_checkbox=True)
+                        #builder.configure_default_column(editable=True)
+        go = builder.build()
+                        #uses the gridOptions dictionary to configure AgGrid behavior.
+        grid_response=AgGrid(df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                        #selelcted row to show in audit AGGrid
+        selected = grid_response['selected_rows']
+        csv=df.to_csv().encode('utf-8')
+        st.download_button("Download CSV file",csv,f"Audit_Obs.csv")
+        if selected:
+            st.success(f"""Criteria:- \n{selected[0]['Criteria']}""")
             
+            filename=selected[0]['Annexure']
+            rev_filename=f"{auditid}_{filename}"
+                                
+            if filename:
+                                    
+                with open(os.path.join("obsev_docs",rev_filename), 'rb') as f:
+                    st.download_button('Download Attachment', f, file_name=filename,key="reveiewdld")    
+                  
+            with st.form("Mdify Observation Doc",clear_on_submit=True):
+                
+                Condition=st.text_area("Update Condition",key='condition')
+                Cause=st.text_area("Update Cause",key='Cause')
+                Effect=st.text_area("Update Effect",key='Effect')
+                
+                Conclusion=st.text_area("Update Conclusion",key='Conclusion1')
+                
+                Impact=st.text_area("Update Impact",key='Impact')
+                Recomendation=st.text_area("Update Recomendation",key='Recomendation')
+                Corrective_Action_Plan=st.text_area("Update Corrective_Action_Plan",key='Corrective_Action_Plan')
+                Is_Adverse_Remark=st.text_input("Update Is_Adverse_Remark",key='Is_Adverse_Remark',value=selected[0]['Is_Adverse_Remark'])
+                DeadLine=st.date_input('Update DeadLine',key='DeadLine')
+                Annexure=st.file_uploader("Upload File",type=['pdf','xlsx','docx'],key='Annexure')
+                file_name=st.text_input("Enter File Name without extention...Name should be Unique",key='comfilname')
+                
+                                 
+                roid=selected[0]['id']
+                                
+                                
+                submitted_Obsr_mod =st.form_submit_button("Submit")
+                if submitted_Obsr_mod:
+                    if Is_Adverse_Remark=="Yes" or Is_Adverse_Remark=="No":
+                        
+                        if Annexure is not None:
+                                                #st.write(f'again-{file_name}')
+                            if file_name:
+                                if Annexure.type=="application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+                                    extn="docx"
+                                elif Annexure.type=="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+                                    extn='xlsx'
+                                else :
+                                    extn='pdf'
+                                                    #if st.button("Upload file",key='uf1'):
+                                comp_filename=f"{auditid}_{file_name}.{extn}"
+                                file_name=f"{file_name}.{extn}"
+                                with open(os.path.join("obsev_docs",comp_filename),"wb") as f: 
+                                    f.write(Annexure.getbuffer())
+                                                    
+                                updatobr=modify_audit_observation(roid,Condition,Cause,Effect,Conclusion,Impact,Recomendation,Corrective_Action_Plan,Is_Adverse_Remark,DeadLine,file_name)                                        
+                            else:
+                                st.error("Enter File Name")    
+                        else:
+                                            #st.write(f'befor-{file_name}')
+                            file_name=None
+                                            #st.write(f'then-{file_name}')
+                                                #reviws_table.add_row({"Criteria":"criteria","Condition":"condition","Cause":"cause","Effect":"effect"})
+                            updatobr=modify_audit_observation(roid,Condition,Cause,Effect,Conclusion,Impact,Recomendation,Corrective_Action_Plan,Is_Adverse_Remark,DeadLine,file_name)                                        
+                                    
+                    else: 
+                        st.error('Is_Adverse_Remark can either be Yes or No') 
+                    
+        else:
+            st.error('Select a Record to Update ....')
+                    
+
+        
+        
+            
+       
+def show_Audit_summary():
+    with cont_oaudit_summary:
+        st.success('Summary of Audit Observations...')
+        crud=st.radio("",('View','Add New','Modify','Delete'),horizontal=True,key='strcrud')
+        auditid=int(st.session_state['AuditID'])
+        df=get_Audit_summ(auditid)
+        builder = GridOptionsBuilder.from_dataframe(df)
+        builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=15)
+        builder.configure_selection(selection_mode="single",use_checkbox=True)
+                        #builder.configure_default_column(editable=True)
+        go = builder.build()
+                        #uses the gridOptions dictionary to configure AgGrid behavior.
+        grid_response=AgGrid(df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                        #selelcted row to show in audit AGGrid
+        selected = grid_response['selected_rows']
+        col1,col2,c3,c4 =st.columns(4)
+        with col1:
+            csv=df.to_csv().encode('utf-8')
+            st.download_button("Download CSV file",csv,f"Audit_Summ.csv")
+        #report in word
+        with col2:
+            
+            if st.button("Generate Report in Word",key="grwrs"):
+                    df.drop(['id', 'Audit_id','Created_by','Created_on'], axis=1,inplace=True)
+                    fname=f"{st.session_state['Company']}_{st.session_state['AuditID']}"
+                    #st.write(fname)
+                    # 2. Create a template Environment
+                    env = Environment(loader=FileSystemLoader('templates'))
+                    # 3. Load the template from the Environment
+                    template = env.get_template('summ.html')
+                    # 4. Render the template with variables
+                    
+                    titler=f"Company:- {st.session_state['Company']}| Audit:- {st.session_state['Audit']}"
+                    html1 = template.render(logo='autoaudit_t.png',
+                                            page_title_text=titler,
+                                            title_text='Executive Summary',
+                                            DF1_heading="Summary Observations",                      
+                                            df1=df.to_html())
+                                            
+                                            
+                                            
+                    #docx to rport
+                    document = Document()
+                    new_parser = HtmlToDocx()
+                    document=new_parser.parse_html_string(html1)
+                    document.save(fname)
+                    #st.markdown(html1, unsafe_allow_html=True)
+                    #components.html(html1, width=800, height=400,scrolling=True)
+                    with open(fname,'rb') as f:
+                        st.download_button('Download Reports',f,'Summ_report.docx')
+
+        
+        
+        if crud=='Add New':
+                    st.success('Enter details to Add New Record')
+                    with st.form("Add AduSumm docs",clear_on_submit=True):
+                        Observation=st.text_input("Enter Observation",key='Observation')
+                        Impact=st.text_input("Enter Impact",key='Impact')
+                        Area=st.text_input("Enter Area",key='Area')
+                        Need_for_Management_Intervention=st.text_input("Need_for_Management_Intervention",key='Need_for_Management_Intervention')
+                        risk_weight=st.slider("Set Risk Weights",min_value=1,max_value=10,key='slider2rws')
+                        if risk_weight >=1 and risk_weight <=3:
+                                    risk_category='Low'
+                        elif risk_weight >=4 and risk_weight <=7:
+                                    risk_category='Medium'
+                        else:
+                                    risk_category='High'
+                        submitted_com_sum = st.form_submit_button("Submit")
+                        if submitted_com_sum:
+                            if Observation:
+                                audsum=add_audit_summ(auditid,Observation,risk_weight,risk_category,Impact,
+                                                       Area,Need_for_Management_Intervention)                                        
+                            else:
+                                st.error("Please Enter -Observation. It is Mandatory field")
+        elif crud=='Modify':
+                           
+            if selected:
+                st.success('Enter details to Modify Selected Record')
+                with st.form("Mdify Summ",clear_on_submit=True):
+                                    
+                        roid=selected[0]['id']
+                        Observation=st.text_input("Update Observation",key='Observationm',value=selected[0]['Observation'])
+                        Impact=st.text_input("Update Impactm",key='Impact',value=selected[0]['Impact'])
+                        Area=st.text_input("Update Area",key='Aream',value=selected[0]['Impact'])
+                        Need_for_Management_Intervention=st.text_input("Need_for_Management_Intervention",key='Need_for_Management_Interventionm',value=selected[0]['Need_for_Management_Intervention'])
+                        risk_weight=st.slider("Set Risk Weights",min_value=1,max_value=10,key='slider2rwsm')
+                        if risk_weight >=1 and risk_weight <=3:
+                                    risk_category='Low'
+                        elif risk_weight >=4 and risk_weight <=7:
+                                    risk_category='Medium'
+                        else:
+                                    risk_category='High'
+                        submitted_com_summ = st.form_submit_button("Submit")
+                        if submitted_com_summ:
+                            if Observation:
+                                audsum=modify_audit_summ(roid,Observation,Impact,Area,
+                                                         Need_for_Management_Intervention,risk_weight,risk_category)                                        
+                            else:
+                                st.error("Please Enter - Observation. It is Mandatory field")
+                            
+            else:
+                st.error('Select a Record to Modify ....')
+                        
+                    
+        elif crud=='View':
+            st.success('')
+        else:
+                if selected:
+                        st.success('Are you sure you want to Delete Selected Record')
+                        if st.button("Delete Selected Record",key='delcompdocacks'):
+                            rid=selected[0]['id']
+                            rdel=del_audit_sum(rid)
+                else:
+                        st.error('Select a Record to Delete ....')
+
+        
+        
+        
+        
+       
+
 def show_audit():
     
     with audit_container:
@@ -41,7 +252,7 @@ def show_audit():
         
         st.title("Audit")
         with st.sidebar.markdown("# Audit"):
-            sel_option= st.radio("Select Option",('Documents & Info.','Select Data Set to Audit'),key='raiodmainop')
+            sel_option= st.radio("Select Option",('Documents & Info.','Select Data Set to Audit','Audit Observations','Audit Summary'),key='raiodmainop')
         if sel_option=='Documents & Info.':
             
             docs_ops=st.selectbox('Select Audit File',options=('-----','Company Audit File','Audit Working Papers'))
@@ -145,9 +356,9 @@ def show_audit():
                                             else:
                                                 st.error("Enter File Name")    
                                     else:
-                                        st.write(f'befor-{file_name}')
+                                        #st.write(f'befor-{file_name}')
                                         file_name=None
-                                        st.write(f'then-{file_name}')
+                                        #st.write(f'then-{file_name}')
                                             #reviws_table.add_row({"Criteria":"criteria","Condition":"condition","Cause":"cause","Effect":"effect"})
                                         Reveiew=modif_comp_doc(roid,dtitle,dremarks,file_name,ddoctype)                                        
                                 else:
@@ -178,7 +389,7 @@ def show_audit():
                     else:
                         st.error('Select a Record to Delete ....')
 
-                    
+                  
             else:
                 st. success(docs_ops)
                 auditid=int(st.session_state['AuditID'])
@@ -316,8 +527,12 @@ def show_audit():
 
                 
                 
-                
-                
+        elif sel_option=='Audit Observations':
+            #st.success('Update Audit Observations...')
+            show_Audit_observations()
+            
+        elif sel_option=='Audit Summary':
+            show_Audit_summary()
                 
         else:
                 #do V&V

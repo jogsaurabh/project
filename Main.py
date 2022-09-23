@@ -11,7 +11,7 @@ st.set_page_config(page_title="AutoAudit", page_icon=":white_check_mark:", layou
 st.image(image,width=250)
 st.markdown("""---""")
 #get list of companies
-company_list=get_company_names()
+
 #st.write(company_list.__str__())
 headerSection = st.container()
 mainSection = st.container()
@@ -43,6 +43,7 @@ def assign_user_rights_show():
     st.title("Assign User")
     
 def show_main_page():
+    company_list=get_company_names()
     with mainSection:
         #st.success(f"{st.session_state['Company']}_{st.session_state['AuditID']}_filename")
         st.write(f"User:-{st.session_state['User']}",f"  | Company:-{st.session_state['Company']}",

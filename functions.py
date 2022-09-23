@@ -629,10 +629,12 @@ def get_comp_by_user():
     try:
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
+        #if st.session_state['User']:
         query=f"SELECT company_name from Users_Rights where user='{st.session_state['User']}' and role='Manager'"
         sql_query=pd.read_sql_query(query,sqliteConnection)
         companies = pd.DataFrame(sql_query)
         cursor.close()
+
     except sqlite3.Error as error:
         companies=("Error while getting company names", error)
         st.write(companies)

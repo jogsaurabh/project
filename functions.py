@@ -99,9 +99,9 @@ def create_company(comp_name, com_address,com_email,com_mobile,com_person):
         #st.info("Done1")
         #add DS name in table
         sqlite_insert_with_param = """INSERT INTO Company
-                          (Name,Address,email,mobile,contact_person) 
-                          VALUES (?,?,?,?,?);"""
-        data_tuple = (comp_name, com_address,com_email,com_mobile,com_person)
+                          (Name,Address,email,mobile,contact_person,Created_by) 
+                          VALUES (?,?,?,?,?,?);"""
+        data_tuple = (comp_name, com_address,com_email,com_mobile,com_person,st.session_state['User'])
         #st.info("Done2")
         cursor.execute(sqlite_insert_with_param, data_tuple)
         sqliteConnection.commit()
@@ -535,7 +535,7 @@ def get_company_names():
     try:
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
-        cursor.execute("SELECT Name from Company")
+        cursor.execute(f"SELECT Name from Company where Created_by='{st.session_state['User']}'")
         compnamesT=cursor.fetchall()
         #tuple to nap arry convert
         compnames=pd.DataFrame(compnamesT)
@@ -1481,7 +1481,7 @@ def get_audit_observations(auditid):
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
         query=f"""SELECT id,Criteria,Condition,Cause,Effect,Conclusion,Impact,Recomendation,
-	                Annexure,Is_Adverse_Remark,Corrective_Action_Plan,DeadLine,Risk_Weight,Risk_Level,Audit_Area,Heading,person_responsible,audit_id,Observation_by,Observation_on from Audit_Observations 
+	                Annexure,Is_Adverse_Remark,Corrective_Action_Plan,DeadLine,Risk_Weight,Risk_Level,Audit_Area,Heading,person_responsible,Management_Comments,audit_id,Observation_by,Observation_on from Audit_Observations 
                     where Audit_id={auditid}"""
         sql_query=pd.read_sql_query(query,sqliteConnection)
         df = pd.DataFrame(sql_query)
@@ -1622,6 +1622,150 @@ def del_audit_sum(id):
             
     return message_verify
 
-          
+def get_pending_obser(auditid):   
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        query=f"""SELECT id,Criteria,Condition,Cause,Effect,Conclusion,Impact,Recomendation,
+	                Annexure,Is_Adverse_Remark,Corrective_Action_Plan,DeadLine,Risk_Weight,Risk_Level,Audit_Area,Heading,person_responsible,Management_Comments,audit_id,Observation_by,Observation_on from Audit_Observations 
+                    where Audit_id={auditid} and Compliance_Status='Open'"""
+        sql_query=pd.read_sql_query(query,sqliteConnection)
+        df = pd.DataFrame(sql_query)
+        cursor.close()
+    except sqlite3.Error as error:
+        df=("Error while getting Audit Observations", error)
+        st.error(df)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+        
+    return df
      
+def update_mgt_comm(id,reply):
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        #update audit status
+        query=f"UPDATE Audit_Observations SET Management_Comments ='{reply}' WHERE id = {id}"
+        #query=f"SELECT Review from Audit_AR where DataSetName='{DsName}' AND CompanyName='{comp_name}'"
+        #st.write(query)
+        cursor.execute(query)
+        sqliteConnection.commit()
+        cursor.close()
+        updatereply=("Management_Comments updated....")
+    except sqlite3.Error as error:
+        updatereply=("Error while Updating Query Status", error)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+            
+    return updatereply
+
+def get_pending_Corrective(auditid):
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        query=f"""SELECT id,Criteria,Condition,Cause,Effect,Conclusion,Impact,Recomendation,
+	                Annexure,Is_Adverse_Remark,Corrective_Action_Plan,DeadLine,Risk_Weight,Risk_Level,Audit_Area,Heading,person_responsible,
+                    Management_Comments,Action_Remarks,audit_id,Observation_by,Observation_on from Audit_Observations 
+                    where Audit_id={auditid} and Compliance_Status='Open'"""
+        sql_query=pd.read_sql_query(query,sqliteConnection)
+        df = pd.DataFrame(sql_query)
+        cursor.close()
+    except sqlite3.Error as error:
+        df=("Error while getting Audit Observations", error)
+        st.error(df)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+        
+    return df
+    
+def update_corre_action(id,reply):
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        #update audit status
+        query=f"UPDATE Audit_Observations SET Action_Remarks ='{reply}' WHERE id = {id}"
+        #query=f"SELECT Review from Audit_AR where DataSetName='{DsName}' AND CompanyName='{comp_name}'"
+        #st.write(query)
+        cursor.execute(query)
+        sqliteConnection.commit()
+        cursor.close()
+        updatereply=("Action_Remarks updated....")
+    except sqlite3.Error as error:
+        updatereply=("Error while Updating Query Status", error)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+            
+    return updatereply
+
+def get_pending_Compliance(auditid): 
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        query=f"""SELECT id,Criteria,Condition,Cause,Effect,Conclusion,Impact,Recomendation,
+	                Annexure,Is_Adverse_Remark,Corrective_Action_Plan,DeadLine,Risk_Weight,Risk_Level,Audit_Area,Heading,person_responsible,
+                    Management_Comments,Action_Remarks,Compliance_Status,Compliance_Remarks,audit_id,Observation_by,Observation_on from Audit_Observations 
+                    where Audit_id={auditid} and Compliance_Status='Open'"""
+        sql_query=pd.read_sql_query(query,sqliteConnection)
+        df = pd.DataFrame(sql_query)
+        cursor.close()
+    except sqlite3.Error as error:
+        df=("Error while getting Audit Observations", error)
+        st.error(df)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+        
+    return df
+       
+def update_compliance_remarks(id,reply,status):
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        #update audit status
+        query=f"UPDATE Audit_Observations SET Compliance_Remarks ='{reply}', Compliance_Status='{status}' WHERE id = {id}"
+        #query=f"SELECT Review from Audit_AR where DataSetName='{DsName}' AND CompanyName='{comp_name}'"
+        #st.write(query)
+        cursor.execute(query)
+        sqliteConnection.commit()
+        cursor.close()
+        updatereply=("Compliance_Remarks updated....")
+    except sqlite3.Error as error:
+        updatereply=("Error while Updating Query Status", error)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+            
+    return updatereply
+
+def closed_audit(auditid):
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        #update audit status
+        query=f"UPDATE Audit SET Status ='Closed' WHERE id = {auditid}"
+        #query=f"SELECT Review from Audit_AR where DataSetName='{DsName}' AND CompanyName='{comp_name}'"
+        #st.write(query)
+        cursor.execute(query)
+        sqliteConnection.commit()
+        cursor.close()
+        updatereply=("Audit Closed....")
+    except sqlite3.Error as error:
+        updatereply=("Error while Updating Status", error)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+            
+    return updatereply
+
     

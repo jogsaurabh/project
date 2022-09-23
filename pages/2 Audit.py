@@ -3,6 +3,8 @@
 #from sys import audit
 #from turtle import onclick
 import os
+from queue import Empty
+#import numpy as np
 from jinja2 import Environment, FileSystemLoader
 #from email.policy import default
 #from operator import index
@@ -15,9 +17,9 @@ from datetime import datetime
 from docx import Document
 from htmldocx import HtmlToDocx
 from functions import modify_audit_summ,add_audit_summ,get_Audit_summ,get_audit_observations,del_audit_doc,modif_comp_doc,get_company_docs,get_user_rights,get_active_users,add_datato_ds,get_verification,get_audit,add_audit_verification
-from functions import create_user,check_login,get_dsname_personresponsible,assign_user_rights,create_company,get_company_names,get_pending_queries
+from functions import closed_audit,create_user,check_login,get_dsname_personresponsible,assign_user_rights,create_company,get_company_names,get_pending_queries
 from functions import del_comp_doc,add_comp_doc,create_dataset,add_verification_criteria,get_dsname,get_entire_dataset,get_auditee_comp
-from functions import del_audit_sum,modify_audit_observation,modif_audit_doc,add_audit_doc,get_audit_docs,get_dataset,add_analytical_review,insert_vouching,update_audit_status,get_ar_for_ds,add_query_reply
+from functions import get_pending_Compliance,del_audit_sum,modify_audit_observation,modif_audit_doc,add_audit_doc,get_audit_docs,get_dataset,add_analytical_review,insert_vouching,update_audit_status,get_ar_for_ds,add_query_reply
 import pandas as pd
 from PIL import Image
 image = Image.open('autoaudit_t.png')
@@ -38,87 +40,112 @@ cont_oaudit_summary=st.container()
 #comp_name=st.session_state['Company']
 def show_Audit_observations():
     with cont_observation:
-        st.success('Update Audit Observations...')
+        crud=st.radio("",('Show Observations','Update Audit Observations'),horizontal=True,key='strcrudas')
         auditid=int(st.session_state['AuditID'])
         df=get_audit_observations(auditid)
-        builder = GridOptionsBuilder.from_dataframe(df)
-        builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=10)
-        builder.configure_selection(selection_mode="single",use_checkbox=True)
-                        #builder.configure_default_column(editable=True)
-        go = builder.build()
-                        #uses the gridOptions dictionary to configure AgGrid behavior.
-        grid_response=AgGrid(df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
-                        #selelcted row to show in audit AGGrid
-        selected = grid_response['selected_rows']
-        csv=df.to_csv().encode('utf-8')
-        st.download_button("Download CSV file",csv,f"Audit_Obs.csv")
-        if selected:
-            st.success(f"""Criteria:- \n{selected[0]['Criteria']}""")
-            
-            filename=selected[0]['Annexure']
-            rev_filename=f"{auditid}_{filename}"
-                                
-            if filename:
+        if crud=='Update Audit Observations':
+            st.success('Update Audit Observations...')
+            #auditid=int(st.session_state['AuditID'])
+            #df=get_audit_observations(auditid)
+            builder = GridOptionsBuilder.from_dataframe(df)
+            builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=10)
+            builder.configure_selection(selection_mode="single",use_checkbox=True)
+                            #builder.configure_default_column(editable=True)
+            #builder.configure_default_column(groupable=True)
+            go = builder.build()
+                            #uses the gridOptions dictionary to configure AgGrid behavior.
+            grid_response=AgGrid(df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                            #selelcted row to show in audit AGGrid
+            selected = grid_response['selected_rows']
+            csv=df.to_csv().encode('utf-8')
+            st.download_button("Download CSV file",csv,f"Audit_Obs.csv")
+            if selected:
+                st.success(f"""Criteria:- \n{selected[0]['Criteria']}""")
+                
+                filename=selected[0]['Annexure']
+                rev_filename=f"{auditid}_{filename}"
                                     
-                with open(os.path.join("obsev_docs",rev_filename), 'rb') as f:
-                    st.download_button('Download Attachment', f, file_name=filename,key="reveiewdld")    
-                  
-            with st.form("Mdify Observation Doc",clear_on_submit=True):
-                
-                Condition=st.text_area("Update Condition",key='condition')
-                Cause=st.text_area("Update Cause",key='Cause')
-                Effect=st.text_area("Update Effect",key='Effect')
-                
-                Conclusion=st.text_area("Update Conclusion",key='Conclusion1')
-                
-                Impact=st.text_area("Update Impact",key='Impact')
-                Recomendation=st.text_area("Update Recomendation",key='Recomendation')
-                Corrective_Action_Plan=st.text_area("Update Corrective_Action_Plan",key='Corrective_Action_Plan')
-                Is_Adverse_Remark=st.text_input("Update Is_Adverse_Remark",key='Is_Adverse_Remark',value=selected[0]['Is_Adverse_Remark'])
-                DeadLine=st.date_input('Update DeadLine',key='DeadLine')
-                Annexure=st.file_uploader("Upload File",type=['pdf','xlsx','docx'],key='Annexure')
-                file_name=st.text_input("Enter File Name without extention...Name should be Unique",key='comfilname')
-                
-                                 
-                roid=selected[0]['id']
-                                
-                                
-                submitted_Obsr_mod =st.form_submit_button("Submit")
-                if submitted_Obsr_mod:
-                    if Is_Adverse_Remark=="Yes" or Is_Adverse_Remark=="No":
-                        
-                        if Annexure is not None:
-                                                #st.write(f'again-{file_name}')
-                            if file_name:
-                                if Annexure.type=="application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-                                    extn="docx"
-                                elif Annexure.type=="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-                                    extn='xlsx'
-                                else :
-                                    extn='pdf'
-                                                    #if st.button("Upload file",key='uf1'):
-                                comp_filename=f"{auditid}_{file_name}.{extn}"
-                                file_name=f"{file_name}.{extn}"
-                                with open(os.path.join("obsev_docs",comp_filename),"wb") as f: 
-                                    f.write(Annexure.getbuffer())
-                                                    
-                                updatobr=modify_audit_observation(roid,Condition,Cause,Effect,Conclusion,Impact,Recomendation,Corrective_Action_Plan,Is_Adverse_Remark,DeadLine,file_name)                                        
+                if filename:
+                                        
+                    with open(os.path.join("obsev_docs",rev_filename), 'rb') as f:
+                        st.download_button('Download Attachment', f, file_name=filename,key="reveiewdld")    
+                    
+                with st.form("Mdify Observation Doc",clear_on_submit=True):
+                    
+                    Condition=st.text_area("Update Condition",key='condition')
+                    Cause=st.text_area("Update Cause",key='Cause')
+                    Effect=st.text_area("Update Effect",key='Effect')
+                    
+                    Conclusion=st.text_area("Update Conclusion",key='Conclusion1')
+                    
+                    Impact=st.text_area("Update Impact",key='Impact')
+                    Recomendation=st.text_area("Update Recomendation",key='Recomendation')
+                    Corrective_Action_Plan=st.text_area("Update Corrective_Action_Plan",key='Corrective_Action_Plan')
+                    Is_Adverse_Remark=st.text_input("Update Is_Adverse_Remark",key='Is_Adverse_Remark',value=selected[0]['Is_Adverse_Remark'])
+                    DeadLine=st.date_input('Update DeadLine',key='DeadLine')
+                    Annexure=st.file_uploader("Upload File",type=['pdf','xlsx','docx'],key='Annexure')
+                    file_name=st.text_input("Enter File Name without extention...Name should be Unique",key='comfilname')
+                    
+                                    
+                    roid=selected[0]['id']
+                                    
+                                    
+                    submitted_Obsr_mod =st.form_submit_button("Submit")
+                    if submitted_Obsr_mod:
+                        if Is_Adverse_Remark=="Yes" or Is_Adverse_Remark=="No":
+                            
+                            if Annexure is not None:
+                                                    #st.write(f'again-{file_name}')
+                                if file_name:
+                                    if Annexure.type=="application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+                                        extn="docx"
+                                    elif Annexure.type=="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+                                        extn='xlsx'
+                                    else :
+                                        extn='pdf'
+                                                        #if st.button("Upload file",key='uf1'):
+                                    comp_filename=f"{auditid}_{file_name}.{extn}"
+                                    file_name=f"{file_name}.{extn}"
+                                    with open(os.path.join("obsev_docs",comp_filename),"wb") as f: 
+                                        f.write(Annexure.getbuffer())
+                                                        
+                                    updatobr=modify_audit_observation(roid,Condition,Cause,Effect,Conclusion,Impact,Recomendation,Corrective_Action_Plan,Is_Adverse_Remark,DeadLine,file_name)                                        
+                                else:
+                                    st.error("Enter File Name")    
                             else:
-                                st.error("Enter File Name")    
-                        else:
-                                            #st.write(f'befor-{file_name}')
-                            file_name=None
-                                            #st.write(f'then-{file_name}')
-                                                #reviws_table.add_row({"Criteria":"criteria","Condition":"condition","Cause":"cause","Effect":"effect"})
-                            updatobr=modify_audit_observation(roid,Condition,Cause,Effect,Conclusion,Impact,Recomendation,Corrective_Action_Plan,Is_Adverse_Remark,DeadLine,file_name)                                        
-                                    
-                    else: 
-                        st.error('Is_Adverse_Remark can either be Yes or No') 
-                    
+                                                #st.write(f'befor-{file_name}')
+                                file_name=None
+                                                #st.write(f'then-{file_name}')
+                                                    #reviws_table.add_row({"Criteria":"criteria","Condition":"condition","Cause":"cause","Effect":"effect"})
+                                updatobr=modify_audit_observation(roid,Condition,Cause,Effect,Conclusion,Impact,Recomendation,Corrective_Action_Plan,Is_Adverse_Remark,DeadLine,file_name)                                        
+                                        
+                        else: 
+                            st.error('Is_Adverse_Remark can either be Yes or No') 
+                        
+            else:
+                st.error('Select a Record to Update ....')
         else:
-            st.error('Select a Record to Update ....')
-                    
-
+            #show summary
+            #table = pd.pivot_table(df, values='Risk_Weight', index=['Audit_Area', 'Heading','Criteria'],
+                     #aggfunc=np.sum) 
+            #table=df.groupby(['Audit_Area', 'Heading','Criteria','Condition','Cause','Effect'])['Risk_Weight'].sum()  
+            #table.drop_duplicates("Audit_Area",keep='first',inplace=True)  
+            #st.dataframe(table)            
+            builder = GridOptionsBuilder.from_dataframe(df)
+            builder.configure_default_column(groupable=True)
+            #builder.configure_columns(column_names=['Audit_Area', 'Heading','Criteria'])
+            builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=10)
+            builder.configure_selection(selection_mode="single",use_checkbox=True)
+                            #builder.configure_default_column(editable=True)
+            #builder.configure_columns(['Audit_Area'],columnDefs={'field': 'Audit_Area', 'rowGroup': 'true', 'hide': 'true' })
+            #gridOptionsset = {'columnDefs': {'field': 'Audit_Area', 'rowGroup': 'true', 'hide': 'true' }}
+            #builder.configure_grid_options(gridOptionsset)
+            go = builder.build()
+                            #uses the gridOptions dictionary to configure AgGrid behavior.
+            st.success(f"""Use Options to Group Report by Mutiple Levels.
+                       Right Click to Export Report to Excel""")
+            grid_response=AgGrid(df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+            
         
         
             
@@ -252,7 +279,7 @@ def show_audit():
         
         st.title("Audit")
         with st.sidebar.markdown("# Audit"):
-            sel_option= st.radio("Select Option",('Documents & Info.','Select Data Set to Audit','Audit Observations','Audit Summary'),key='raiodmainop')
+            sel_option= st.radio("Select Option",('Documents & Info.','Select Data Set to Audit','Audit Observations','Audit Summary','Close Audit'),key='raiodmainop')
         if sel_option=='Documents & Info.':
             
             docs_ops=st.selectbox('Select Audit File',options=('-----','Company Audit File','Audit Working Papers'))
@@ -533,6 +560,21 @@ def show_audit():
             
         elif sel_option=='Audit Summary':
             show_Audit_summary()
+        
+        elif sel_option=='Close Audit':
+            auditid=int(st.session_state['AuditID'])
+            pending_qs=get_pending_Compliance(auditid)
+            if pending_qs.empty:
+                st.success("All Audit Observations are Closed ;so Now You can Close this Audit ")
+                if st.button("Close Audit",key='closeauit'):
+                    cl=closed_audit(auditid)
+                    st.success(cl)
+                    st.success("Login Again")
+                    st.session_state['loggedIn'] = False
+                    loginuser=""
+            else:
+                st.error("Following are Open Audit Observations, First Close all the Open Items & then you can Close Audit")
+                st.dataframe(pending_qs)
                 
         else:
                 #do V&V

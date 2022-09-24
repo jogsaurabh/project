@@ -53,6 +53,7 @@ def show_main_page():
             master_options = st.radio("Select",('Create Company','Assign User Rights','Add New Audit'))
         #st.sidebar.button("Assign User Rights",key="ba1",on_click=assign_user_rights_show)
         if master_options=="Create Company":
+            #st.success("""For First Time Login- """)
             with st.form("Create New Company",clear_on_submit=True):
                         st.title("Create New Company")
                         comp_name = st.text_input (label="",value="",placeholder="Enter company Name",key="comp_name1")
@@ -111,10 +112,13 @@ def show_main_page():
                         
                         #st.button("Submit",on_click=create_company, args= (comp_name, com_address,com_email,com_mobile,com_person))
                         #st.button("Submit",key="sub11"):
+                        
                         if st.form_submit_button("Submit"):
-                            creat_audit(Audit_Name,Company_name,Period,Remarks)
-            
- 
+                            if Audit_Name:
+                                    creat_audit(Audit_Name,Company_name,Period,Remarks)
+                            else:
+                                st.success("Audit Name is Required")
+    
 def LoggedOut_Clicked():
     st.session_state['loggedIn'] = False
     loginuser=""

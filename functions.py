@@ -535,7 +535,7 @@ def get_company_names():
     try:
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
-        cursor.execute(f"SELECT Name from Company where Created_by='{st.session_state['User']}'")
+        cursor.execute(f"SELECT Name from Company")
         compnamesT=cursor.fetchall()
         #tuple to nap arry convert
         compnames=pd.DataFrame(compnamesT)

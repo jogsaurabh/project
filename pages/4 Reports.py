@@ -22,9 +22,10 @@ st.image(image,width=250)
 st.markdown("""---""")
 # emojis: https://www.webfx.com/tools/emoji-cheat-sheet/
 
-comp_name=st.session_state['Company']
+
 report_container=st.container()
 def show_report():
+    comp_name=st.session_state['Company']
     with report_container:
         st.write(f"User:-{st.session_state['User']}",f"  | Company:-{st.session_state['Company']}",
                  f"  | Audit:-{st.session_state['Audit']}",f"  | Role:-{st.session_state['Role']}")

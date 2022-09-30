@@ -251,7 +251,7 @@ def show_report():
                             plot_bgcolor="rgba(0,0,0,0)")
                             #xaxis=(dict(showgrid=False)))
                     fchart2=f"{fname}c2.png"
-                    pio.write_image(chart1,fchart2)
+                    pio.write_image(chart2,fchart2)
                     #st.plotly_chart(chart1,use_container_width=True)
                     
                     

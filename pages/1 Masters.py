@@ -116,7 +116,7 @@ def show_masters():
                         dataframe=pd.DataFrame()   
         elif master_options=='Add Records to Data Set':
                 st.header("Add data to Existing Data Set")
-                ftype=st.radio("Select File Type",options=['CSV','XLSX'])
+                ftype=st.radio("Select File Type",options=['CSV','XLSX','JSON'])
                 
                 st.info("Check that all colums are Exactly same as per Existing Data Set, before uploading.")
                 #get list of ds_name for current company
@@ -137,6 +137,8 @@ def show_masters():
                         st.success("Check Data to Add to Current Data Set")
                         if ftype=='CSV':
                             uploaded_file = st.file_uploader("Upload a file",type='csv',key="uploadfile22")
+                        elif ftype=='JSON':
+                            uploaded_file = st.file_uploader("Upload a file",type='JSON',key="uploadfile23")
                         else:
                             uploaded_file = st.file_uploader("Upload a file",type='xlsx',key="uploadfile11")
                 
@@ -149,8 +151,29 @@ def show_masters():
                                 #dataframe = pd.read_excel(uploaded_file,)
                                 if ftype=='CSV':
                                     dataframe = pd.read_csv(uploaded_file,encoding= 'unicode_escape')
+                                    for y in dataframe.columns:
+                                #check if  column is Boolion type
+                                        if(pd.api.types.is_bool_dtype(dataframe[y])):
+                                            #convert to string
+                                            dataframe[y] = dataframe[y].map({True: 'True', False: 'False'})
+                                            #st.write(y)
+                                elif ftype=='JSON':
+                                    data = json.load(uploaded_file)
+                                    dataframe=pd.json_normalize(data)
+                                    for y in dataframe.columns:
+                                        #check if  column is Boolion type
+                                        if(pd.api.types.is_bool_dtype(dataframe[y])):
+                                            #convert to string
+                                            dataframe[y] = dataframe[y].map({True: 'True', False: 'False'})
+                                    
                                 else:                            
                                     dataframe = pd.read_excel(uploaded_file)
+                                    for y in dataframe.columns:
+                                #check if  column is Boolion type
+                                        if(pd.api.types.is_bool_dtype(dataframe[y])):
+                                            #convert to string
+                                            dataframe[y] = dataframe[y].map({True: 'True', False: 'False'})
+                                            #st.write(y)
                                 dfmax=df['index'].max()
                                 dataframe.insert(0,"index",range(dfmax+1, dfmax+1 + len(dataframe)))
                                 st.dataframe(dataframe)

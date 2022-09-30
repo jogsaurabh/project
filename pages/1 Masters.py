@@ -4,6 +4,7 @@ from queue import Empty
 import streamlit as st
 import pandas as pd
 import numpy as np
+import json
 #from main import show_login_page,LoggedOut_Clicked
 from st_aggrid import AgGrid,DataReturnMode, GridUpdateMode, GridOptionsBuilder, JsCode, grid_options_builder
 #from formatter import NullFormatter
@@ -39,9 +40,12 @@ def show_masters():
         if master_options=='Add New Data Set':
             
             st.header("Add New Data Set")
-            ftype=st.radio("Select File Type",options=['CSV','XLSX'])
+            ftype=st.radio("Select File Type",options=['CSV','XLSX','JSON'])
             if ftype=='CSV':
                 st.success(f"1) Check that - First Row contains column Headings..\n2) File is of - .csv type\n3) No column should have name - index")
+            elif ftype=='JSON':
+                st.success('Check the Result before Importing DataSet')
+                
             else:
                 st.success(f"1) Check that - First Row contains column Headings..\n2) File is of - .xlsx type\n3) File contains only 1 sheet\n4) No column should have name - index")
             
@@ -50,26 +54,54 @@ def show_masters():
             #st.warning("Check ...First Column is Primary Key / Unique")
             auditee=get_auditee_comp()
             if auditee.empty:
-                st.error(f"No Auditee assigned to Current Company...\n Assign Atleast 1 user with Auditee Role")
+                st.info(f"No Auditee assigned to Current Company...\n Assign Atleast 1 user with Auditee Role")
                 
             else:
                 table_name=st.text_input("Enter Name of Data Set",key="tablename1")
                 person_responsible=st.selectbox("Select Auditee, who will answer Queries",auditee,key="sbperson_responsible")
                 if ftype=='CSV':
                     uploaded_file = st.file_uploader("Upload a file",type='csv',key="uploadfile2")
+                elif ftype=='JSON':
+                    uploaded_file = st.file_uploader("Upload a file",type='json',key="uploadfile3")
                 else:
                     uploaded_file = st.file_uploader("Upload a file",type='xlsx',key="uploadfile1")
                 if uploaded_file is not None:
-                        st.write(uploaded_file.name)
+                        #st.write(uploaded_file.name)
                         filename=uploaded_file.name
                         if ftype=='CSV':
                             dataframe = pd.read_csv(uploaded_file,encoding= 'unicode_escape')
+                            for y in dataframe.columns:
+                                #check if  column is Boolion type
+                                if(pd.api.types.is_bool_dtype(dataframe[y])):
+                                    #convert to string
+                                    dataframe[y] = dataframe[y].map({True: 'True', False: 'False'})
+                                    #st.write(y)
+                        elif ftype=='JSON':
+                            data = json.load(uploaded_file)
+                            dataframe=pd.json_normalize(data)
+                            for y in dataframe.columns:
+                                #check if  column is Boolion type
+                                if(pd.api.types.is_bool_dtype(dataframe[y])):
+                                    #convert to string
+                                    dataframe[y] = dataframe[y].map({True: 'True', False: 'False'})
+                                    #st.write(y)
                         else:                            
                             dataframe = pd.read_excel(uploaded_file)
+                            
+                            for y in dataframe.columns:
+                                #st.write(y)
+                                #check if  column is Boolion type
+                                if(pd.api.types.is_bool_dtype(dataframe[y])):
+                                    #convert to string
+                                    
+                                    dataframe[y] = dataframe[y].map({True: 'True', False: 'False'})
+                                    #st.write(y)
+                            
                         st.dataframe(dataframe)
+                        #st.table(dataframe.info())
                         #check if colum name=index or Index
                         if 'Index' in dataframe.columns or 'index' in dataframe.columns:
-                            st.error(f'Column name with "Index" or "index" not allowed...Please change colum Name')
+                            st.info(f'Column name with "Index" or "index" not allowed...Please change colum Name')
                         else:
                             if st.button("Create Data Set",key="b1"):
                                 if table_name:
@@ -77,7 +109,7 @@ def show_masters():
                                     st.success(message) 
                                     #masters.empty()       
                                 else:
-                                    st.error("Please enter Data Set Name")
+                                    st.info("Please enter Data Set Name")
                                     #masters.empty()
                         #del & clear DataFrame
                         del [[dataframe]]
@@ -90,7 +122,7 @@ def show_masters():
                 #get list of ds_name for current company
                 ds_names=get_dsname(int(st.session_state['AuditID']))
                 if ds_names.empty:
-                    st.error(f"No Data Sets for Current Company...\n First Add Data Set in current Company.")
+                    st.info(f"No Data Sets for Current Company...\n First Add Data Set in current Company.")
                 else:
                     col1, col2 =st.columns(2)
                     with col1:
@@ -193,7 +225,7 @@ def show_masters():
                 st.success('Enter details to Add New Record')
                 auditee=get_auditee_comp()
                 if auditee.empty:
-                    st.error(f"No Auditee assigned to Current Company...\n Assign Atleast 1 user with Auditee Role")
+                    st.info(f"No Auditee assigned to Current Company...\n Assign Atleast 1 user with Auditee Role")
                 else:
                     
                     add_options= st.radio("",('Import Default Check List', 'Add Check List'),horizontal=True,key='op1')
@@ -236,13 +268,13 @@ def show_masters():
                                         addchk=add_audit_cheklist(criteria,Audit_area,heading,risk_weight,
                                                                   risk_category,person_responsible,auditid)
                                     else:
-                                        st.error("Criteria & Audit Area are Mandatory fields")
+                                        st.info("Criteria & Audit Area are Mandatory fields")
                             
 
             elif crud=='Modify':
                 auditee=get_auditee_comp()
                 if auditee.empty:
-                    st.error(f"No Auditee assigned to Current Company...\n Assign Atleast 1 user with Auditee Role")
+                    st.info(f"No Auditee assigned to Current Company...\n Assign Atleast 1 user with Auditee Role")
                 else:
                     if selected:
                             st.success('Enter details to Modify Selected Record')
@@ -269,10 +301,10 @@ def show_masters():
                                         addchk=modify_audit_cheklist(roid,mcriteria,mrisk_weight,mrisk_levl,mauditarea,
                                                                      mheading,mperson_responsible)
                                     else:
-                                        st.error("Criteria & Audit Area are Mandatory fields")
+                                        st.info("Criteria & Audit Area are Mandatory fields")
                             
                     else:
-                            st.error('Select a Record to Modify ....')
+                            st.info('Select a Record to Modify ....')
                         
                     
             elif crud=='View':
@@ -284,7 +316,7 @@ def show_masters():
                             rid=selected[0]['id']
                             rdel=del_checklist(rid)
                 else:
-                        st.error('Select a Record to Delete ....')
+                        st.info('Select a Record to Delete ....')
 
                        
                                                    
@@ -321,7 +353,7 @@ def show_masters():
                             updaterisk=update_risk_weights(criteria_selected,ds,int(st.session_state['AuditID']),risk_weight,risk_category)
                             #Chek_List=add_verification_criteria(Crtiteria,ds_name,comp_name,risk_weight,risk_category)
                         else:
-                            st.error('Criteria can not be blank.')
+                            st.info('Criteria can not be blank.')
             
             #st.write(field)
             with st.expander("View Risk Weights"):
@@ -333,7 +365,7 @@ def show_masters():
                 st.header("Compare Audited Dataset with Current Version of Dataset")
                 st.success("1)Upload Current Version of Dataset...\n2)Check...Data Structure is Excatly same, with same colum names")
                 #st.info("Check ...Data Structure is Excatly same, with same colum names")
-                ftype=st.radio("Select File Type",options=['CSV','XLSX'])
+                ftype=st.radio("Select File Type",options=['CSV','XLSX','JSON'])
                 
                 ds_names=get_dsname(int(st.session_state['AuditID']))
                 ds=st.selectbox("Select Data Set Name...",ds_names,key="sb2")
@@ -342,6 +374,8 @@ def show_masters():
                 #st.write(ds_name)
                 if ftype=='CSV':
                     uploaded_file = st.file_uploader("Upload a file",type='csv',key="uploadfile22")
+                elif ftype=='JSON':
+                    uploaded_file = st.file_uploader("Upload a file",type='json',key="uploadfile23")
                 else:
                     uploaded_file = st.file_uploader("Upload a file",type='xlsx',key="uploadfile11")
                 
@@ -352,6 +386,9 @@ def show_masters():
                     #filename=uploaded_file.name
                     if ftype=='CSV':
                         dataframe_new = pd.read_csv(uploaded_file,encoding= 'unicode_escape')
+                    elif ftype=='JSON':
+                        data = json.load(uploaded_file)
+                        dataframe_new=pd.json_normalize(data)
                     else:                            
                         dataframe_new = pd.read_excel(uploaded_file)
                     #dataframe_new = pd.read_excel(uploaded_file)

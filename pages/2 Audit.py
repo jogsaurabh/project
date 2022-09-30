@@ -16,7 +16,7 @@ import streamlit as st
 from datetime import datetime
 from docx import Document
 from htmldocx import HtmlToDocx
-from functions import modify_audit_summ,add_audit_summ,get_Audit_summ,get_audit_observations,del_audit_doc,modif_comp_doc,get_company_docs,get_user_rights,get_active_users,add_datato_ds,get_verification,get_audit,add_audit_verification
+from functions import get_ar_queries,modify_audit_summ,add_audit_summ,get_Audit_summ,get_audit_observations,del_audit_doc,modif_comp_doc,get_company_docs,get_user_rights,get_active_users,add_datato_ds,get_verification,get_audit,add_audit_verification
 from functions import closed_audit,create_user,check_login,get_dsname_personresponsible,assign_user_rights,create_company,get_company_names,get_pending_queries
 from functions import del_comp_doc,add_comp_doc,create_dataset,add_verification_criteria,get_dsname,get_entire_dataset,get_auditee_comp
 from functions import get_pending_Compliance,del_audit_sum,modify_audit_observation,modif_audit_doc,add_audit_doc,get_audit_docs,get_dataset,add_analytical_review,insert_vouching,update_audit_status,get_ar_for_ds,add_query_reply
@@ -57,8 +57,8 @@ def show_Audit_observations():
             grid_response=AgGrid(df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
                             #selelcted row to show in audit AGGrid
             selected = grid_response['selected_rows']
-            csv=df.to_csv().encode('utf-8')
-            st.download_button("Download CSV file",csv,f"Audit_Obs.csv")
+            #csv=df.to_csv().encode('utf-8')
+            #st.download_button("Download CSV file",csv,f"Audit_Obs.csv")
             if selected:
                 st.success(f"""Criteria:- \n{selected[0]['Criteria']}""")
                 
@@ -81,7 +81,8 @@ def show_Audit_observations():
                     Impact=st.text_area("Update Impact",key='Impact')
                     Recomendation=st.text_area("Update Recomendation",key='Recomendation')
                     Corrective_Action_Plan=st.text_area("Update Corrective_Action_Plan",key='Corrective_Action_Plan')
-                    Is_Adverse_Remark=st.text_input("Update Is_Adverse_Remark",key='Is_Adverse_Remark',value=selected[0]['Is_Adverse_Remark'])
+                    Is_Adverse_Remark=st.selectbox("Update Is_Adverse_Remark",key='isactive',options=("Yes","No"))
+                    #Is_Adverse_Remark=st.text_input("Update Is_Adverse_Remark",key='Is_Adverse_Remark',value=selected[0]['Is_Adverse_Remark'])
                     DeadLine=st.date_input('Update DeadLine',key='DeadLine')
                     Annexure=st.file_uploader("Upload File",type=['pdf','xlsx','docx'],key='Annexure')
                     file_name=st.text_input("Enter File Name without extention...Name should be Unique",key='comfilname')
@@ -111,7 +112,7 @@ def show_Audit_observations():
                                                         
                                     updatobr=modify_audit_observation(roid,Condition,Cause,Effect,Conclusion,Impact,Recomendation,Corrective_Action_Plan,Is_Adverse_Remark,DeadLine,file_name)                                        
                                 else:
-                                    st.error("Enter File Name")    
+                                    st.info("Enter File Name")    
                             else:
                                                 #st.write(f'befor-{file_name}')
                                 file_name=None
@@ -120,10 +121,10 @@ def show_Audit_observations():
                                 updatobr=modify_audit_observation(roid,Condition,Cause,Effect,Conclusion,Impact,Recomendation,Corrective_Action_Plan,Is_Adverse_Remark,DeadLine,file_name)                                        
                                         
                         else: 
-                            st.error('Is_Adverse_Remark can either be Yes or No') 
+                            st.info('Is_Adverse_Remark can either be Yes or No') 
                         
             else:
-                st.error('Select a Record to Update ....')
+                st.info('Select a Record to Update ....')
         else:
             #show summary
             #table = pd.pivot_table(df, values='Risk_Weight', index=['Audit_Area', 'Heading','Criteria'],
@@ -165,14 +166,14 @@ def show_Audit_summary():
         grid_response=AgGrid(df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
                         #selelcted row to show in audit AGGrid
         selected = grid_response['selected_rows']
-        col1,col2,c3,c4 =st.columns(4)
-        with col1:
-            csv=df.to_csv().encode('utf-8')
-            st.download_button("Download CSV file",csv,f"Audit_Summ.csv")
+        #col1,col2,c3,c4 =st.columns(4)
+        #with col1:
+            #csv=df.to_csv().encode('utf-8')
+            #st.download_button("Download CSV file",csv,f"Audit_Summ.csv")
         #report in word
-        with col2:
+        #with col2:
             
-            if st.button("Generate Report in Word",key="grwrs"):
+        if st.button("Generate Report in Word",key="grwrs"):
                     df.drop(['id', 'Audit_id','Created_by','Created_on'], axis=1,inplace=True)
                     fname=f"{st.session_state['Company']}_{st.session_state['AuditID']}"
                     #st.write(fname)
@@ -223,7 +224,7 @@ def show_Audit_summary():
                                 audsum=add_audit_summ(auditid,Observation,risk_weight,risk_category,Impact,
                                                        Area,Need_for_Management_Intervention)                                        
                             else:
-                                st.error("Please Enter -Observation. It is Mandatory field")
+                                st.info("Please Enter -Observation. It is Mandatory field")
         elif crud=='Modify':
                            
             if selected:
@@ -248,10 +249,10 @@ def show_Audit_summary():
                                 audsum=modify_audit_summ(roid,Observation,Impact,Area,
                                                          Need_for_Management_Intervention,risk_weight,risk_category)                                        
                             else:
-                                st.error("Please Enter - Observation. It is Mandatory field")
+                                st.info("Please Enter - Observation. It is Mandatory field")
                             
             else:
-                st.error('Select a Record to Modify ....')
+                st.info('Select a Record to Modify ....')
                         
                     
         elif crud=='View':
@@ -263,7 +264,7 @@ def show_Audit_summary():
                             rid=selected[0]['id']
                             rdel=del_audit_sum(rid)
                 else:
-                        st.error('Select a Record to Delete ....')
+                        st.info('Select a Record to Delete ....')
 
         
         
@@ -284,7 +285,7 @@ def show_audit():
             
             docs_ops=st.selectbox('Select Audit File',options=('-----','Company Audit File','Audit Working Papers'))
             if docs_ops=="-----":
-                st.error("Select type of Audit File...")
+                st.info("Select type of Audit File...")
             elif docs_ops=="Company Audit File":
                 #st.markdown("""---""")
                 #st. success(docs_ops)
@@ -331,13 +332,13 @@ def show_audit():
                                                 f.write(compfile.getbuffer())
                                             Reveiew=add_comp_doc(dtitle,dremarks,file_name,ddoctype,st.session_state['Company'])                                        
                                         else:
-                                            st.error("Enter File Name")    
+                                            st.info("Enter File Name")    
                                 else:
                                     file_name=None
                                         #reviws_table.add_row({"Criteria":"criteria","Condition":"condition","Cause":"cause","Effect":"effect"})
                                     Reveiew=add_comp_doc(dtitle,dremarks,file_name,ddoctype,st.session_state['Company'])                                        
                             else:
-                                st.error("Please Enter -Title. It is Mandatory field")
+                                st.info("Please Enter -Title. It is Mandatory field")
 
                            
                 elif crud=='Modify':
@@ -381,7 +382,7 @@ def show_audit():
                                                 
                                                 Reveiew=modif_comp_doc(roid,dtitle,dremarks,file_name,ddoctype)                                        
                                             else:
-                                                st.error("Enter File Name")    
+                                                st.info("Enter File Name")    
                                     else:
                                         #st.write(f'befor-{file_name}')
                                         file_name=None
@@ -389,12 +390,12 @@ def show_audit():
                                             #reviws_table.add_row({"Criteria":"criteria","Condition":"condition","Cause":"cause","Effect":"effect"})
                                         Reveiew=modif_comp_doc(roid,dtitle,dremarks,file_name,ddoctype)                                        
                                 else:
-                                    st.error("Please Enter -Title. It is Mandatory field")
+                                    st.info("Please Enter -Title. It is Mandatory field")
 
                             
                            
                     else:
-                        st.error('Select a Record to Modify ....')
+                        st.info('Select a Record to Modify ....')
                         
                 elif crud=='View':
                     #st.markdown("""---""")
@@ -414,7 +415,7 @@ def show_audit():
                             rid=selected[0]['id']
                             rdel=del_comp_doc(rid)
                     else:
-                        st.error('Select a Record to Delete ....')
+                        st.info('Select a Record to Delete ....')
 
                   
             else:
@@ -459,19 +460,20 @@ def show_audit():
                                             else :
                                                 extn='pdf'
                                             #if st.button("Upload file",key='uf1'):
-                                            comp_filename=f"{auditid}_{file_name}.{extn}"
+                                            #comp_filename=f"{auditid}_{file_name}.{extn}"
+                                            comp_filename=f"{st.session_state['Company']}_{file_name}.{extn}"
                                             file_name=f"{file_name}.{extn}"
                                             with open(os.path.join("audit_docs",comp_filename),"wb") as f: 
                                                 f.write(compfile.getbuffer())
                                             Reveiew=add_audit_doc(dtitle,dremarks,file_name,ddoctype,auditid)                                        
                                         else:
-                                            st.error("Enter File Name")    
+                                            st.info("Enter File Name")    
                                 else:
                                     file_name=None
                                         #reviws_table.add_row({"Criteria":"criteria","Condition":"condition","Cause":"cause","Effect":"effect"})
                                     Reveiew=add_audit_doc(dtitle,dremarks,file_name,ddoctype,auditid)                                        
                             else:
-                                st.error("Please Enter -Title. It is Mandatory field")
+                                st.info("Please Enter -Title. It is Mandatory field")
 
                            
                 elif crud=='Modify':
@@ -517,27 +519,27 @@ def show_audit():
                                                 
                                                 Reveiew=modif_audit_doc(roid,dtitle,dremarks,file_name,ddoctype)                                        
                                             else:
-                                                st.error("Enter File Name")    
+                                                st.info("Enter File Name")    
                                     else:
-                                        st.write(f'befor-{file_name}')
+                                        #st.write(f'befor-{file_name}')
                                         file_name=None
-                                        st.write(f'then-{file_name}')
+                                        #st.write(f'then-{file_name}')
                                             #reviws_table.add_row({"Criteria":"criteria","Condition":"condition","Cause":"cause","Effect":"effect"})
                                         Reveiew=modif_audit_doc(roid,dtitle,dremarks,file_name,ddoctype)                                        
                                 else:
-                                    st.error("Please Enter -Title. It is Mandatory field")
+                                    st.info("Please Enter -Title. It is Mandatory field")
 
                             
                            
                     else:
-                        st.error('Select a Record to Modify ....')
+                        st.info('Select a Record to Modify ....')
                         
                 elif crud=='View':
                     #st.markdown("""---""")
                     if selected:
                         filename=selected[0]['File_Ref']
-                        com_filename=f"{auditid}_{filename}"
-                                    
+                        #com_filename=f"{auditid}_{filename}"
+                        com_filename=f"{st.session_state['Company']}_{filename}"          
                         if filename:
                                         
                             with open(os.path.join("audit_docs",com_filename), 'rb') as f:
@@ -550,7 +552,7 @@ def show_audit():
                             rid=selected[0]['id']
                             rdel=del_audit_doc(rid)
                     else:
-                        st.error('Select a Record to Delete ....')
+                        st.info('Select a Record to Delete ....')
 
                 
                 
@@ -573,7 +575,7 @@ def show_audit():
                     st.session_state['loggedIn'] = False
                     loginuser=""
             else:
-                st.error("Following are Open Audit Observations, First Close all the Open Items & then you can Close Audit")
+                st.info("Following are Open Audit Observations, First Close all the Open Items & then you can Close Audit")
                 st.dataframe(pending_qs)
                 
         else:
@@ -589,7 +591,7 @@ def show_audit():
         
                 
             if d_sname=="---":
-                st.error("Select Data Set to Audit")
+                st.info("Select Data Set to Audit")
             else:
                 
                 df=get_dataset(ds_name)
@@ -703,7 +705,7 @@ def show_audit():
                                 Submit_audit= st.form_submit_button("Submit")
                                 if Submit_audit:
                                     if  audited_data.empty:
-                                        st.error("Select row to Audit")
+                                        st.info("Select row to Audit")
                                     else:
                                         #add  in database####new code required
                                         #data_id=int(audited_data.iloc[0,0])
@@ -822,19 +824,44 @@ def show_audit():
                                         #with open(rev_filename, 'rb') as f:
                                         Reveiew=add_analytical_review(criteria,condition,cause,effect,d_sname,st.session_state['Company'],risk_weight,risk_category,file_name)
                                     else:
-                                        st.error("Enter File Name")    
+                                        st.info("Enter File Name")    
                                 else:
                                     file_name=None
                                     #reviws_table.add_row({"Criteria":"criteria","Condition":"condition","Cause":"cause","Effect":"effect"})
                                     Reveiew=add_analytical_review(criteria,condition,cause,effect,d_sname,st.session_state['Company'],risk_weight,risk_category,file_name)
                             else:
-                                st.error("Criteria & Condition are Mandatory fields")
+                                st.info("Criteria & Condition are Mandatory fields")
 
                         
                     
-                    with st.expander("Analytical Review & Other Comments"):
+                    with st.expander("View Analytical Review & Other Comments"):
                         st.success(f"Analytical Review & Other Comments for {d_sname}")
-                        st.dataframe(Reveiew)
+                        Reveiew=get_ar_queries(d_sname)
+                        #st.dataframe(Reveiew)
+                        #show Aggrid
+                        builder = GridOptionsBuilder.from_dataframe(Reveiew)
+                        #.loc[:, ['DataSetName','Field','Data_Id','Audit_Value','Remarks','Verification','Audit_Verification','Reply','status_update_remarks']])
+                        builder.configure_pagination(enabled=True,paginationPageSize=10,paginationAutoPageSize=False)
+                        builder.configure_selection(selection_mode="single",use_checkbox=True)
+                                    #builder.configure_default_column(editable=True)
+                        #cc=JsCode("return{color: 'red'}")
+                        #builder.configure_columns(['Criteria','Condition','Cause','Effect','Reply'],cellStyle={'color': 'red'})
+                        go = builder.build()
+                                    #uses the gridOptions dictionary to configure AgGrid behavior.
+                        #grid_response=AgGrid(pending, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED),theme="blue")
+                        grid_response=AgGrid(Reveiew, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                        selected = grid_response['selected_rows']
+                        #download file option
+                        if selected:
+                            filename=selected[0]['Review_File']
+                            com_filename=f"{(st.session_state['AuditID'])}{d_sname}_{filename}"
+                            #com_filename=f"{st.session_state['Company']}_{filename}"
+                                   
+                            if filename:
+                                        
+                                with open(os.path.join("rev_files",com_filename), 'rb') as f:
+                                    st.download_button('Download Attachment', f, file_name=filename,key="dlcompfile")    
+                    
                         #reviws_table=st.table(Reveiew)
                     st.markdown("""---""")   
                     st.info("Analyse Data")
@@ -843,6 +870,7 @@ def show_audit():
                     with st.expander("View Statistical Summary"):
                         st.success(f"Stats Summary for {d_sname}")
                         st.dataframe(ds.describe())
+                        
                     with st.expander('Analyse Data Set'):
                         st.success(f"Data Set for {d_sname}")
                         builder = GridOptionsBuilder.from_dataframe(ds)
@@ -906,7 +934,7 @@ def LoggedIn_Clicked(userName, password):
         loginuser=userName
     else:
         st.session_state['loggedIn'] = False
-        st.error("Invalid user name or password")
+        st.info("Invalid user name or password")
 
 def Register_Clicked(userid, password,designation,displayname):
     createuser=create_user(displayname,userid,password,designation)

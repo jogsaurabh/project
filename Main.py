@@ -78,7 +78,7 @@ def show_main_page():
             
             users=get_active_users()
             if company_list.empty:
-                    st.error('You can assign rights for Company created by you.')
+                    st.info('You can assign rights for Company created by you.')
                     
             else:
                     with st.form("Assign User Rights",clear_on_submit=True):
@@ -97,9 +97,13 @@ def show_main_page():
                             #st.write("OK")
                                 #assign_user_rights(user,company_name,role)
         else:
-            companies=get_comp_by_user()
+            if st.session_state['User']=='admin':
+                companies=get_company_names()
+            else:
+                
+                companies=get_comp_by_user()
             if companies.empty:
-                st.error(f"Only Users with Manager Role can add Audit...\n You are not Manager for any Company.")
+                st.info(f"Only Users with Manager Role can add Audit...\n You are not Manager for any Company.")
             else:
                 with st.form("Add New Audit",clear_on_submit=True):
                         st.title("Add New Audit")
@@ -136,7 +140,7 @@ def LoggedIn_Clicked(userName, password):
         loginuser=userName
     else:
         st.session_state['loggedIn'] = False
-        st.error("Invalid user name or password")
+        st.info("Invalid user name or password")
 
 def Register_Clicked(userid, password,designation,displayname):
     createuser=create_user(displayname,userid,password,designation)

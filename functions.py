@@ -74,17 +74,17 @@ def check_login(username,password,comp_name,role,audit) :
                 return True
             else:
                 st.session_state['loggedIn'] = False
-                st.error("Invalid password")
+                st.info("Invalid password")
                 return False
         else:
             st.session_state['loggedIn'] = False
-            st.error("Invalid user name ")
+            st.info("Invalid user name ")
             return False
             
     except sqlite3.Error as error:
         if sqliteConnection:
             sqliteConnection.close()
-        st.error(error)
+        st.info(error)
         return False
         
     finally:
@@ -134,7 +134,7 @@ def add_datato_ds(df,table_name,comp_name):
         message=("Error while Appending Data Set ", error)
     except ValueError:
         message=(error)
-        st.error("Values Mismatch...Data Set NOT Appended ")
+        st.info("Values Mismatch...Data Set NOT Appended ")
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -218,11 +218,11 @@ def create_dataset(df,table_name,comp_name,person_responsible):
         sqliteConnection.commit()
         cursor.close()
     except sqlite3.Error as error:
-        st.error=("Error while creating Data Set to sqlite", error)
+        st.info=("Error while creating Data Set to sqlite", error)
         message="Error in Dataset Creation"
     except ValueError:
         message=("DS Name aready exist...You can create new Dataset with Other Name")
-        #st.error("DS Name aready exist...You can create new Dataset with Other Name")
+        #st.info("DS Name aready exist...You can create new Dataset with Other Name")
     finally:
         
         if sqliteConnection:
@@ -361,15 +361,15 @@ def add_analytical_review (criteria,condition,cause,effect,DsName,comp_name,risk
         sqliteConnection.commit()
         st.info("Review Inserted")
         #get list of reviews
-        query=f"SELECT Criteria,Condition,Cause,Effect,Risk_Weight,Risk_Category from Audit_AR where DataSetName='{DsName}' and Audit_id='{int(st.session_state['AuditID'])}'"
+        #query=f"SELECT Criteria,Condition,Cause,Effect,Risk_Weight,Risk_Category,Review_File from Audit_AR where DataSetName='{DsName}' and Audit_id='{int(st.session_state['AuditID'])}'"
         #st.write(query)
-        sql_query=pd.read_sql_query(query,sqliteConnection)
-        df = pd.DataFrame(sql_query)
+        #sql_query=pd.read_sql_query(query,sqliteConnection)
+        #df = pd.DataFrame(sql_query)
         cursor.close()
-        reviews=('Review Inserted')
+        df='Review Inserted'
     except sqlite3.Error as error:
         df=("Error while creating Data Set Criteria", error)
-        st.error(df)
+        st.info(df)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -389,7 +389,7 @@ def insert_vouching(df):
         vouching=("Audit Vouching added Successfully")
     except sqlite3.Error as error:
         vouching=("Error while saving Vouching", error)
-        #st.error(vouching)
+        #st.info(vouching)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -517,7 +517,7 @@ def get_ar_for_ds(ds_name):
     try:
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
-        query=f"SELECT Criteria,Condition,Cause,Effect,Risk_Weight,Risk_Category from Audit_AR where DataSetName='{ds_name}' and Audit_id='{int(st.session_state['AuditID'])}'"
+        query=f"SELECT Criteria,Condition,Cause,Effect,Risk_Weight,Risk_Category,Review_File from Audit_AR where DataSetName='{ds_name}' and Audit_id='{int(st.session_state['AuditID'])}'"
         sql_query=pd.read_sql_query(query,sqliteConnection)
         df = pd.DataFrame(sql_query)
         cursor.close()
@@ -775,7 +775,7 @@ def get_risk_weights_ds_vouching(ds_name):
         cursor.close()
     except sqlite3.Error as error:
         df=("Error while getting Audit Reviews", error)
-        st.error(df)
+        st.info(df)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -795,7 +795,7 @@ def get_risk_weights_ds(ds_name):
         cursor.close()
     except sqlite3.Error as error:
         df=("Error while getting Audit Reviews", error)
-        st.error(df)
+        st.info(df)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -820,7 +820,7 @@ def update_risk_weights(criteria,DsName,auditid,risk_weight,risk_category):
         st.info(auditstatus)
     except sqlite3.Error as error:
         auditstatus=("Error while Updating Audit Status", error)
-        st.error(auditstatus)
+        st.info(auditstatus)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -846,7 +846,7 @@ def update_verification_criteria(criteria,old_criteria,DsName,auditid,risk_weigh
         st.info(auditstatus)
     except sqlite3.Error as error:
         auditstatus=("Error while Updating Verification Criteria", error)
-        #st.error(auditstatus)
+        #st.info(auditstatus)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -885,7 +885,7 @@ def get_dataset_values(DSname):
         cursor.close()
     except sqlite3.Error as error:
         message=("Error while creating Data Set Criteria", error)
-        st.error(message)
+        st.info(message)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -925,7 +925,7 @@ def get_audit_values(Audit_id):
         cursor.close()
     except sqlite3.Error as error:
         message=("Error while creating Data Set Criteria", error)
-        st.error(message)
+        st.info(message)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -987,7 +987,7 @@ def get_values_id_dsn(Audit_id,datasetname):
         #total Risk for DS= Total audited records * above
     except sqlite3.Error as error:
         message=("Error while creating Data Set Criteria", error)
-        st.error(message)
+        st.info(message)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1010,7 +1010,7 @@ def get_vv_quries(DSfilename,DSName,audit_id):
         cursor.close()
     except sqlite3.Error as error:
         df=("Error while creating Data Set Criteria", error)
-        st.error(df)
+        st.info(df)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1053,7 +1053,7 @@ def get_Summary_audit_values(Audit_id,ds):
         cursor.close()
     except sqlite3.Error as error:
         message=("Error while creating Data Set Criteria", error)
-        st.error(message)
+        st.info(message)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1075,7 +1075,7 @@ def get_Summary_audit_values_comp(Audit_id):
         cursor.close() 
     except sqlite3.Error as error:
         message=("Error while creating Data Set Criteria", error)
-        st.error(message)
+        st.info(message)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1102,7 +1102,7 @@ def get_Summary_audit_values_riskweight(Audit_id,ds):
         
     except sqlite3.Error as error:
         message=("Error while creating Data Set Criteria", error)
-        st.error(message)
+        st.info(message)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1124,7 +1124,7 @@ def get_Summary_audit_values_riskweight_comp(Audit_id):
         cursor.close()
     except sqlite3.Error as error:
         message=("Error while creating Data Set Criteria", error)
-        st.error(message)
+        st.info(message)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1146,7 +1146,7 @@ def get_Summary_audit_values_riskcategory(Audit_id,ds):
         cursor.close()
     except sqlite3.Error as error:
         message=("Error while creating Data Set Criteria", error)
-        st.error(message)
+        st.info(message)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1164,7 +1164,7 @@ def get_company_docs(comp_name):
         cursor.close()
     except sqlite3.Error as error:
         df=("Error while getting Audit Reviews", error)
-        st.error(df)
+        st.info(df)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1248,7 +1248,7 @@ def modif_comp_doc(roid,title,remarks,file_ref,doc_type):
         st.info(auditstatus)
     except sqlite3.Error as error:
         auditstatus=("Error while Updating Record", error)
-        st.error(auditstatus)
+        st.info(auditstatus)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1266,7 +1266,7 @@ def get_audit_docs(auditid):
         cursor.close()
     except sqlite3.Error as error:
         df=("Error while getting Audit Reviews", error)
-        st.error(df)
+        st.info(df)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1350,7 +1350,7 @@ def modif_audit_doc(roid,title,remarks,file_ref,doc_type):
         st.info(auditstatus)
     except sqlite3.Error as error:
         auditstatus=("Error while Updating Record", error)
-        st.error(auditstatus)
+        st.info(auditstatus)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1368,7 +1368,7 @@ def get_audit_checklist(auditid):
         cursor.close()
     except sqlite3.Error as error:
         df=("Error while getting Audit Checklist", error)
-        st.error(df)
+        st.info(df)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1449,7 +1449,7 @@ def modify_audit_cheklist(roid,Criteria,Risk_Weight,Risk_Level,Audit_Area,Headin
         st.info(status)
     except sqlite3.Error as error:
         status=("Error while Updating Record", error)
-        st.error(status)
+        st.info(status)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1470,7 +1470,7 @@ def import_defalut_checklist(df):
         st.dataframe(df)
     except sqlite3.Error as error:
         vouching=("Error while Importing Checklist:-", error)
-        st.error("Audit Criteria MUST be UNIQUE...if Existing Audit Criteria is in Defalut CheckList, Can not Import file.")
+        st.info("Audit Criteria MUST be UNIQUE...if Existing Audit Criteria is in Defalut CheckList, Can not Import file.")
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1490,7 +1490,7 @@ def get_audit_observations(auditid):
         cursor.close()
     except sqlite3.Error as error:
         df=("Error while getting Audit Checklist", error)
-        st.error(df)
+        st.info(df)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1522,7 +1522,7 @@ def modify_audit_observation(roid,Condition,Cause,Effect,Conclusion,Impact,Recom
         st.info(auditstatus)
     except sqlite3.Error as error:
         auditstatus=("Error while Updating Record", error)
-        st.error(auditstatus)
+        st.info(auditstatus)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1540,7 +1540,7 @@ def get_Audit_summ(auditid):
         cursor.close()
     except sqlite3.Error as error:
         df=("Error while getting Audit Summary", error)
-        st.error(df)
+        st.info(df)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1591,7 +1591,7 @@ def modify_audit_summ(roid,Observation,Impact,Area,Need_for_Management_Intervent
         st.info(status)
     except sqlite3.Error as error:
         status=("Error while Updating Record", error)
-        st.error(status)
+        st.info(status)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1636,7 +1636,27 @@ def get_pending_obser(auditid):
         cursor.close()
     except sqlite3.Error as error:
         df=("Error while getting Audit Observations", error)
-        st.error(df)
+        st.info(df)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+        
+    return df
+
+def get_pending_advere_obser(auditid):   
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        query=f"""SELECT id,Criteria,Condition,Cause,Effect,Conclusion,Impact,Recomendation,
+	                Annexure,Is_Adverse_Remark,Corrective_Action_Plan,DeadLine,Risk_Weight,Risk_Level,Audit_Area,Heading,person_responsible,Management_Comments,audit_id,Observation_by,Observation_on from Audit_Observations 
+                    where Audit_id={auditid} and Compliance_Status='Open' and Is_Adverse_Remark = 'Yes' """
+        sql_query=pd.read_sql_query(query,sqliteConnection)
+        df = pd.DataFrame(sql_query)
+        cursor.close()
+    except sqlite3.Error as error:
+        df=("Error while getting Audit Observations", error)
+        st.info(df)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1678,7 +1698,7 @@ def get_pending_Corrective(auditid):
         cursor.close()
     except sqlite3.Error as error:
         df=("Error while getting Audit Observations", error)
-        st.error(df)
+        st.info(df)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -1720,7 +1740,7 @@ def get_pending_Compliance(auditid):
         cursor.close()
     except sqlite3.Error as error:
         df=("Error while getting Audit Observations", error)
-        st.error(df)
+        st.info(df)
     finally:
         if sqliteConnection:
             sqliteConnection.close()

@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from functions import get_user_rights,get_active_users,get_audit,get_comp_by_user,creat_audit
+from functions import get_comp_created_by_user,get_user_rights,get_active_users,get_audit,get_comp_by_user,creat_audit
 from functions import create_user,check_login,assign_user_rights,create_company,get_company_names
 #import sqlite3
 from PIL import Image
@@ -77,15 +77,28 @@ def show_main_page():
                 st.dataframe(userrights_df)
             
             users=get_active_users()
-            if company_list.empty:
-                    st.info('You can assign rights for Company created by you.')
-                    
+            if st.session_state['User']=='admin':
+                companies=get_company_names()
+            else:                
+                companies=get_comp_by_user()
+                #com1=get_comp_created_by_user()
+                #com1.rename(columns={"Name":""})
+                #st.dataframe(com1)
+                #st.dataframe(companies)
+                #companies.append(com1, ignore_index = True)
+            if companies.empty:
+                st.info(f"Only Users with Manager Role can Assign Rights...\n You are not Manager for any Company.")
             else:
+            
+            #if company_list.empty:
+                    #st.info('You can assign rights for Company created by you.')
+                    
+            #else:
                     with st.form("Assign User Rights",clear_on_submit=True):
                         
                         st.title("Assign User Rights")
                         
-                        company_name=st.selectbox("Select Company",company_list,key="company_name")
+                        company_name=st.selectbox("Select Company",companies,key="company_name")
                                 #users=get_unassigned_users(comapname)
                         user=st.selectbox("Select User",users,key="usersb")
                         role=st.selectbox("Select Role",("Manager","Auditor","Auditee"),key="usersb1")
@@ -186,7 +199,11 @@ def show_login_page():
                 password = st.text_input (label="", value="",placeholder="Set password", type="password",key="k6")
                 designation = st.text_input (label="", value="", placeholder="Enter your Designation",key="k3")
                 displayname = st.text_input (label="", value="", placeholder="Enter your Display Name",key="k4")
-                st.form_submit_button("Submit",on_click=Register_Clicked, args= (userid, password,designation,displayname))
+                submit_user =st.form_submit_button("Submit")
+                if submit_user:
+                    createuser=create_user(displayname,userid,password,designation)
+                    st.info(createuser)
+                #st.form_submit_button("Submit",on_click=Register_Clicked, args= (userid, password,designation,displayname))
                 #st.button ("Register", on_click=Register_Clicked, args= (userid, password,designation,displayname))
 
 def show_auditee():

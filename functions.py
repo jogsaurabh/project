@@ -106,8 +106,21 @@ def create_company(comp_name, com_address,com_email,com_mobile,com_person):
         cursor.execute(sqlite_insert_with_param, data_tuple)
         sqliteConnection.commit()
         cursor.close()
-        st.info("created...")
-        message_verify=("Company Created...")
+        st.info("Company created...")
+        message_verify=("Manager Role assigned to Created compnay...")
+        cursor = sqliteConnection.cursor()
+        #st.info("Done1")
+        #add DS name in table
+        sqlite_insert_with_param = """INSERT INTO Users_Rights
+                          (user,company_name,role) 
+                          VALUES (?,?,?);"""
+        data_tuple = (st.session_state['User'],comp_name,'Manager')
+        #st.info("Done2")
+        cursor.execute(sqlite_insert_with_param, data_tuple)
+        sqliteConnection.commit()
+        cursor.close()
+        
+        
     except sqlite3.Error as error:
         message_verify=("Error while creating New Company", error)
         st.info(error)
@@ -644,6 +657,27 @@ def get_comp_by_user():
             #message=("The SQLite connection is closed")
         
     return companies
+
+def get_comp_created_by_user():
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        #if st.session_state['User']:
+        query=f"SELECT Name from Company where Created_by='{st.session_state['User']}'"
+        sql_query=pd.read_sql_query(query,sqliteConnection)
+        companies = pd.DataFrame(sql_query)
+        cursor.close()
+
+    except sqlite3.Error as error:
+        companies=("Error while getting company names", error)
+        st.write(companies)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+        
+    return companies
+
 
 def creat_audit(Audit_Name,Company_name, Period,Remarks):
     try:

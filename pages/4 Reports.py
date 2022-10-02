@@ -286,46 +286,50 @@ def show_report():
             st.success("Audit Observations")
             st.header("Risk Based Audit Summary")
             df_allObservations=get_pending_advere_obser(audit_id)
-            #st.dataframe(df_allObservations)
-            #df_summ=pd.pivot_table(df_allObservations, values='Risk_Weight', index=['Audit_Area', 'Heading'],
-                        #aggfunc=np.sum)
-            df_summ=df_allObservations.groupby('Audit_Area',as_index=False)['Risk_Weight'].sum()
-            col1, col2= st.columns(2)
-            selected_area = st.selectbox("Choose Audit Area for Details", df_summ.Audit_Area, 0)
-            with col1:
-                        st.bar_chart(df_summ,x='Audit_Area',y='Risk_Weight')
-                        
-                        
-                        #st.dataframe(df_head.filter(lambda x: x['Audit_Area']==selected_area)['Risk_Weight'].sum())
-            with col2:
-                        
-                        st.dataframe(df_summ)
-                        
-            c1,c2 =st.columns(2)
-            with c1:
-                        st.write(selected_area)
-                        df_head=df_allObservations.loc[df_allObservations['Audit_Area'] == selected_area]
-                        
-                        df_head=df_head.groupby('Heading',as_index=False)['Risk_Weight'].sum()
-                        st.bar_chart(df_head,x='Heading',y='Risk_Weight')
-            with c2:
-                st.dataframe(df_head)
-                        
-            with st.expander("View All Audit Observations"):
+            if not df_allObservations.empty:
                 
-                st.success(f"""Use Options to Group Report by Mutiple Levels.
-                                                Right Click to Export Report to Excel""")
-                #queries_df=get_vv_quries(f"{comp_name}_{st.session_state['AuditID']}_{ds}",ds,int(st.session_state['AuditID']))
-                                #st.dataframe(queries_df.style.set_properties(**{'color':'red'},subset=['Criteria','Condition','Cause','Effect','Risk_Weight',
-                builder = GridOptionsBuilder.from_dataframe(df_allObservations)
-                builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=10)
-                                #builder.configure_selection(selection_mode="single",use_checkbox=True)
-                builder.configure_columns(['Criteria','Condition','Cause','Effect','Reply'],cellStyle={'color': 'red'})
-                builder.configure_default_column(groupable=True)
-                go = builder.build()
-                                        #uses the gridOptions dictionary to configure AgGrid behavior.
-                AgGrid(df_allObservations, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
-                                                    
+                #st.dataframe(df_allObservations)
+                #df_summ=pd.pivot_table(df_allObservations, values='Risk_Weight', index=['Audit_Area', 'Heading'],
+                            #aggfunc=np.sum)
+                df_summ=df_allObservations.groupby('Audit_Area',as_index=False)['Risk_Weight'].sum()
+                
+                col1, col2= st.columns(2)
+                selected_area = st.selectbox("Choose Audit Area for Details", df_summ.Audit_Area, 0)
+                with col1:
+                            st.bar_chart(df_summ,x='Audit_Area',y='Risk_Weight')
+                            
+                            
+                            #st.dataframe(df_head.filter(lambda x: x['Audit_Area']==selected_area)['Risk_Weight'].sum())
+                with col2:
+                            
+                            st.dataframe(df_summ)
+                            
+                c1,c2 =st.columns(2)
+                with c1:
+                            st.write(selected_area)
+                            df_head=df_allObservations.loc[df_allObservations['Audit_Area'] == selected_area]
+                            
+                            df_head=df_head.groupby('Heading',as_index=False)['Risk_Weight'].sum()
+                            st.bar_chart(df_head,x='Heading',y='Risk_Weight')
+                with c2:
+                    st.dataframe(df_head)
+                            
+                with st.expander("View All Audit Observations"):
+                    
+                    st.success(f"""Use Options to Group Report by Mutiple Levels.
+                                                    Right Click to Export Report to Excel""")
+                    #queries_df=get_vv_quries(f"{comp_name}_{st.session_state['AuditID']}_{ds}",ds,int(st.session_state['AuditID']))
+                                    #st.dataframe(queries_df.style.set_properties(**{'color':'red'},subset=['Criteria','Condition','Cause','Effect','Risk_Weight',
+                    builder = GridOptionsBuilder.from_dataframe(df_allObservations)
+                    builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=10)
+                                    #builder.configure_selection(selection_mode="single",use_checkbox=True)
+                    builder.configure_columns(['Criteria','Condition','Cause','Effect','Reply'],cellStyle={'color': 'red'})
+                    builder.configure_default_column(groupable=True)
+                    go = builder.build()
+                                            #uses the gridOptions dictionary to configure AgGrid behavior.
+                    AgGrid(df_allObservations, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+            else:
+                st.success(" No Observations...")                                            
                 
 
 headerSection = st.container()
@@ -413,7 +417,11 @@ def show_login_page():
                 password = st.text_input (label="", value="",placeholder="Set password", type="password",key="k6")
                 designation = st.text_input (label="", value="", placeholder="Enter your Designation",key="k3")
                 displayname = st.text_input (label="", value="", placeholder="Enter your Display Name",key="k4")
-                st.form_submit_button("Submit",on_click=Register_Clicked, args= (userid, password,designation,displayname))
+                submit_user =st.form_submit_button("Submit")
+                if submit_user:
+                    createuser=create_user(displayname,userid,password,designation)
+                    st.info(createuser)
+                #st.form_submit_button("Submit",on_click=Register_Clicked, args= (userid, password,designation,displayname))
                 #st.button ("Register", on_click=Register_Clicked, args= (userid, password,designation,displayname))
 
 

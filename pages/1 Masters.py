@@ -207,7 +207,7 @@ def show_masters():
                         with c2:
                             risk_weight=st.slider("Set Risk Weights",min_value=1,max_value=10,key='slider2')
                             
-                            if risk_weight >=1 and risk_weight <=3:
+                            if risk_weight >=0 and risk_weight <=3:
                                 risk_category='Low'
                             elif risk_weight >=4 and risk_weight <=7:
                                 risk_category='Medium'
@@ -277,7 +277,7 @@ def show_masters():
                                 risk_weight=st.slider("Set Risk Weights",min_value=1,max_value=10,key='slider2rw')
                                 person_responsible=st.selectbox("Select Person Responsible",auditee,key="sbperson_responsibleck")
             
-                                if risk_weight >=1 and risk_weight <=3:
+                                if risk_weight >=0 and risk_weight <=3:
                                     risk_category='Low'
                                 elif risk_weight >=4 and risk_weight <=7:
                                     risk_category='Medium'
@@ -308,7 +308,7 @@ def show_masters():
                                 mrisk_weight=st.slider("Update Risk Weights",min_value=1,max_value=10,key='slider2rwm')
                                 mperson_responsible=st.selectbox("Update Person Responsible",auditee,key="sbperson_responsibleckm")
                 
-                                if mrisk_weight >=1 and mrisk_weight <=3:
+                                if mrisk_weight >=0 and mrisk_weight <=3:
                                         mrisk_levl='Low'
                                 elif mrisk_weight >=4 and mrisk_weight <=7:
                                         mrisk_levl='Medium'
@@ -359,9 +359,9 @@ def show_masters():
                     with c1:
                         criteria_selected=st.selectbox("Select Criteria",key="sf1",options=criteria)
                     with c2:
-                        risk_weight=st.slider("Set Risk Weights",min_value=1,max_value=10,key='slider2')
+                        risk_weight=st.slider("Set Risk Weights",min_value=0,max_value=10,key='slider2')
                         
-                        if risk_weight >=1 and risk_weight <=3:
+                        if risk_weight >=0 and risk_weight <=3:
                             risk_category='Low'
                         elif risk_weight >=4 and risk_weight <=7:
                             risk_category='Medium'
@@ -482,7 +482,7 @@ def show_logout_page():
         st.sidebar.button ("Log Out", key="logout", on_click=LoggedOut_Clicked)
 
 
-def Register_Clicked(userid, password,designation,displayname):
+def Register_Clicked(displayname,userid ,password,designation):
     createuser=create_user(displayname,userid,password,designation)
     st.info(createuser)
     #show_login_page()
@@ -527,7 +527,12 @@ def show_login_page():
                 password = st.text_input (label="", value="",placeholder="Set password", type="password",key="k6")
                 designation = st.text_input (label="", value="", placeholder="Enter your Designation",key="k3")
                 displayname = st.text_input (label="", value="", placeholder="Enter your Display Name",key="k4")
-                st.form_submit_button("Submit",on_click=Register_Clicked, args= (userid, password,designation,displayname))
+                submit_user =st.form_submit_button("Submit")
+                if submit_user:
+                    createuser=create_user(displayname,userid,password,designation)
+                    st.info(createuser)
+                    
+                #st.form_submit_button("Submit",on_click=Register_Clicked, args= (displayname,userid, password,designation))
                 #st.button ("Register", on_click=Register_Clicked, args= (userid, password,designation,displayname))
 
 def show_auditee():

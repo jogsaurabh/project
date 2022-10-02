@@ -278,7 +278,11 @@ def show_login_page():
                 password = st.text_input (label="", value="",placeholder="Set password", type="password",key="k6")
                 designation = st.text_input (label="", value="", placeholder="Enter your Designation",key="k3")
                 displayname = st.text_input (label="", value="", placeholder="Enter your Display Name",key="k4")
-                st.form_submit_button("Submit",on_click=Register_Clicked, args= (userid, password,designation,displayname))
+                submit_user =st.form_submit_button("Submit")
+                if submit_user:
+                    createuser=create_user(displayname,userid,password,designation)
+                    st.info(createuser)
+                #st.form_submit_button("Submit",on_click=Register_Clicked, args= (userid, password,designation,displayname))
                 #st.button ("Register", on_click=Register_Clicked, args= (userid, password,designation,displayname))
 
 def show_auditee():

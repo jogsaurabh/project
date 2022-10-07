@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from functions import get_comp_created_by_user,get_user_rights,get_active_users,get_audit,get_comp_by_user,creat_audit
-from functions import create_user,check_login,assign_user_rights,create_company,get_company_names
+from functions import update_password,get_active_users_created_by_me,get_comp_created_by_user,get_user_rights,get_active_users,get_audit,get_comp_by_user,creat_audit
+from functions import get_linked_obsr_ar,create_user,check_login,assign_user_rights,create_company,get_company_names
 #import sqlite3
 from PIL import Image
 image = Image.open('autoaudit_t.png')
@@ -50,7 +50,7 @@ def show_main_page():
                  f"  | Audit:-{st.session_state['Audit']}",f"  | Role:-{st.session_state['Role']}")
         
         with st.sidebar.markdown("# Masters "):
-            master_options = st.radio("Select",('Create Company','Assign User Rights','Add New Audit'))
+            master_options = st.radio("Select",('Create Company','Create User','Assign User Rights','Add New Audit'))
         #st.sidebar.button("Assign User Rights",key="ba1",on_click=assign_user_rights_show)
         if master_options=="Create Company":
             #st.success("""For First Time Login- """)
@@ -67,6 +67,23 @@ def show_main_page():
                         #st.button("Submit",key="sub11"):
                         if st.form_submit_button("Submit"):
                             create_company(comp_name, com_address,com_email,com_mobile,com_person)
+        
+        elif master_options=="Create User":
+            with st.form("New User",clear_on_submit=True):
+                
+                st.title("Create User")
+                userid = st.text_input (label="", value="", placeholder="Enter user ID",key="ck5")
+                password = st.text_input (label="", value="",placeholder="Set password", type="password",key="ck6")
+                designation = st.text_input (label="", value="", placeholder="Enter Designation",key="ck3")
+                displayname = st.text_input (label="", value="", placeholder="Enter Display Name",key="ck4")
+                submit_userc =st.form_submit_button("Submit")
+                if submit_userc:
+                    createuser=create_user(displayname,userid,password,designation)
+                    st.info(createuser)
+                #st.form_submit_button("Submit",on_click=Register_Clicked, args= (userid, password,designation,displayname))
+                #st.button ("Register", on_click=Register_Clicked, args= (userid, password,designation,displayname))
+
+            
                             
         elif master_options=="Assign User Rights":
             showrights=st.button("Show User Rights",key="seur")
@@ -76,39 +93,43 @@ def show_main_page():
                 st.title("Existing User Rights")
                 st.dataframe(userrights_df)
             
-            users=get_active_users()
-            if st.session_state['User']=='admin':
-                companies=get_company_names()
-            else:                
-                companies=get_comp_by_user()
-                #com1=get_comp_created_by_user()
-                #com1.rename(columns={"Name":""})
-                #st.dataframe(com1)
-                #st.dataframe(companies)
-                #companies.append(com1, ignore_index = True)
-            if companies.empty:
-                st.info(f"Only Users with Manager Role can Assign Rights...\n You are not Manager for any Company.")
+            users=get_active_users_created_by_me()
+            #if users created by me then oly do following
+            if not users.empty:
+                if st.session_state['User']=='admin':
+                    companies=get_company_names()
+                else:                
+                    companies=get_comp_by_user()
+                    #com1=get_comp_created_by_user()
+                    #com1.rename(columns={"Name":""})
+                    #st.dataframe(com1)
+                    #st.dataframe(companies)
+                    #companies.append(com1, ignore_index = True)
+                if companies.empty:
+                    st.info(f"Only Users with Manager Role can Assign Rights...\n You are not Manager for any Company.")
+                else:
+                
+                #if company_list.empty:
+                        #st.info('You can assign rights for Company created by you.')
+                        
+                #else:
+                        with st.form("Assign User Rights",clear_on_submit=True):
+                            
+                            st.title("Assign User Rights")
+                            
+                            company_name=st.selectbox("Select Company",companies,key="company_name")
+                                    #users=get_unassigned_users(comapname)
+                            user=st.selectbox("Select User",users,key="usersb")
+                            role=st.selectbox("Select Role",("Manager","Auditor","Auditee"),key="usersb1")
+                        
+                        
+                            submitb = st.form_submit_button("Submit")
+                            if submitb:
+                                assign_user_rights(user,company_name,role)
+                                #st.write("OK")
             else:
-            
-            #if company_list.empty:
-                    #st.info('You can assign rights for Company created by you.')
-                    
-            #else:
-                    with st.form("Assign User Rights",clear_on_submit=True):
-                        
-                        st.title("Assign User Rights")
-                        
-                        company_name=st.selectbox("Select Company",companies,key="company_name")
-                                #users=get_unassigned_users(comapname)
-                        user=st.selectbox("Select User",users,key="usersb")
-                        role=st.selectbox("Select Role",("Manager","Auditor","Auditee"),key="usersb1")
-                    
-                    
-                        submitb = st.form_submit_button("Submit")
-                        if submitb:
-                            assign_user_rights(user,company_name,role)
-                            #st.write("OK")
-                                #assign_user_rights(user,company_name,role)
+                st.info("You have not created any users....you can only assign rights to User Created by you")
+                                    #assign_user_rights(user,company_name,role)
         else:
             if st.session_state['User']=='admin':
                 companies=get_company_names()
@@ -162,7 +183,7 @@ def Register_Clicked(userid, password,designation,displayname):
     
 def show_login_page():
     with loginSection:
-        tab1,tab2 =st.tabs(["   Existing Users  ","   New Users   "])
+        tab1,tab2 =st.tabs(["   Existing Users  ","   Change Password   "])
         with tab1:
             
             if st.session_state['loggedIn'] == False:
@@ -194,15 +215,19 @@ def show_login_page():
         with tab2:
             with st.form("New User",clear_on_submit=True):
                 
-                st.title("Register")
+                st.title("Change Password")
                 userid = st.text_input (label="", value="", placeholder="Enter your user ID",key="k5")
-                password = st.text_input (label="", value="",placeholder="Set password", type="password",key="k6")
-                designation = st.text_input (label="", value="", placeholder="Enter your Designation",key="k3")
-                displayname = st.text_input (label="", value="", placeholder="Enter your Display Name",key="k4")
+                password = st.text_input (label="", value="",placeholder="Enter Current Password", type="password",key="k6")
+                new_pass = st.text_input (label="", value="", placeholder="Enter New Password", type="password",key="k3")
+                renew_pass = st.text_input (label="", value="", placeholder="ReEnter New Password", type="password",key="k4")
                 submit_user =st.form_submit_button("Submit")
                 if submit_user:
-                    createuser=create_user(displayname,userid,password,designation)
-                    st.info(createuser)
+                    if new_pass == renew_pass:
+                        #createuser=create_user(displayname,userid,password,designation)
+                        newpass=update_password(userid,password,new_pass)
+                        st.info(newpass)
+                    else:
+                        st.info('New Password and ReEntered Password not matching...')
                 #st.form_submit_button("Submit",on_click=Register_Clicked, args= (userid, password,designation,displayname))
                 #st.button ("Register", on_click=Register_Clicked, args= (userid, password,designation,displayname))
 

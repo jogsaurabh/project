@@ -12,7 +12,7 @@ import pandas as pd  # pip install pandas openpyxl
 import plotly.express as px  # pip install plotly-express
 import streamlit as st  # pip install streamlit
 from st_aggrid import AgGrid,DataReturnMode, GridUpdateMode, GridOptionsBuilder, JsCode, grid_options_builder
-from functions import get_pending_advere_obser,get_Summary_audit_values,get_ar_queries,get_vv_quries,get_values_id_dsn,get_audit_values,get_queries,get_ar,get_pending_queries,get_dataset_values
+from functions import update_password,get_pending_advere_obser,get_Summary_audit_values,get_ar_queries,get_vv_quries,get_values_id_dsn,get_audit_values,get_queries,get_ar,get_pending_queries,get_dataset_values
 from functions import get_Summary_audit_values_riskweight_comp,get_Summary_audit_values_riskcategory,get_user_rights,get_active_users,add_datato_ds,get_verification,get_audit
 from functions import get_audit_observations,get_Summary_audit_values_comp,get_Summary_audit_values_riskweight,create_user,check_login,assign_user_rights,create_company,get_company_names
 from functions import create_dataset,add_verification_criteria,get_dsname,get_entire_dataset,get_auditee_comp
@@ -381,7 +381,7 @@ def Register_Clicked(userid, password,designation,displayname):
  
 def show_login_page():
     with loginSection:
-        tab1,tab2 =st.tabs(["   Existing Users  ","   New Users   "])
+        tab1,tab2 =st.tabs(["   Existing Users  ","   Change Password   "])
         with tab1:
             
             if st.session_state['loggedIn'] == False:
@@ -412,15 +412,19 @@ def show_login_page():
         with tab2:
             with st.form("New User",clear_on_submit=True):
                 
-                st.title("Register")
+                st.title("Change Password")
                 userid = st.text_input (label="", value="", placeholder="Enter your user ID",key="k5")
-                password = st.text_input (label="", value="",placeholder="Set password", type="password",key="k6")
-                designation = st.text_input (label="", value="", placeholder="Enter your Designation",key="k3")
-                displayname = st.text_input (label="", value="", placeholder="Enter your Display Name",key="k4")
+                password = st.text_input (label="", value="",placeholder="Enter Current Password", type="password",key="k6")
+                new_pass = st.text_input (label="", value="", placeholder="Enter New Password", type="password",key="k3")
+                renew_pass = st.text_input (label="", value="", placeholder="ReEnter New Password", type="password",key="k4")
                 submit_user =st.form_submit_button("Submit")
                 if submit_user:
-                    createuser=create_user(displayname,userid,password,designation)
-                    st.info(createuser)
+                    if new_pass == renew_pass:
+                        #createuser=create_user(displayname,userid,password,designation)
+                        newpass=update_password(userid,password,new_pass)
+                        st.info(newpass)
+                    else:
+                        st.info('New Password and ReEntered Password not matching...')
                 #st.form_submit_button("Submit",on_click=Register_Clicked, args= (userid, password,designation,displayname))
                 #st.button ("Register", on_click=Register_Clicked, args= (userid, password,designation,displayname))
 

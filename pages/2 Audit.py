@@ -16,10 +16,10 @@ import streamlit as st
 from datetime import datetime
 from docx import Document
 from htmldocx import HtmlToDocx
-from functions import get_ar_queries,modify_audit_summ,add_audit_summ,get_Audit_summ,get_audit_observations,del_audit_doc,modif_comp_doc,get_company_docs,get_user_rights,get_active_users,add_datato_ds,get_verification,get_audit,add_audit_verification
-from functions import closed_audit,create_user,check_login,get_dsname_personresponsible,assign_user_rights,create_company,get_company_names,get_pending_queries
+from functions import get_obs_related_vv,update_password,get_ar_queries,modify_audit_summ,add_audit_summ,get_Audit_summ,get_audit_observations,del_audit_doc,modif_comp_doc,get_company_docs,get_user_rights,get_active_users,add_datato_ds,get_verification,get_audit,add_audit_verification
+from functions import get_obs_related_ar,closed_audit,create_user,check_login,get_dsname_personresponsible,assign_user_rights,create_company,get_company_names,get_pending_queries
 from functions import del_comp_doc,add_comp_doc,create_dataset,add_verification_criteria,get_dsname,get_entire_dataset,get_auditee_comp
-from functions import get_pending_Compliance,del_audit_sum,modify_audit_observation,modif_audit_doc,add_audit_doc,get_audit_docs,get_dataset,add_analytical_review,insert_vouching,update_audit_status,get_ar_for_ds,add_query_reply
+from functions import get_obs_related_ar_summary,get_obs_related_vv_summary,get_pending_Compliance,del_audit_sum,modify_audit_observation,modif_audit_doc,add_audit_doc,get_audit_docs,get_dataset,add_analytical_review,insert_vouching,update_audit_status,get_ar_for_ds,add_query_reply
 import pandas as pd
 from PIL import Image
 image = Image.open('autoaudit_t.png')
@@ -69,60 +69,86 @@ def show_Audit_observations():
                                         
                     with open(os.path.join("obsev_docs",rev_filename), 'rb') as f:
                         st.download_button('Download Attachment', f, file_name=filename,key="reveiewdld")    
+                with st.expander('See Related Queries of Vouching & Verification'):
+                    st.info('Vouching & Verification Queries')
+                    col1,col2 = st.columns(2)
                     
-                with st.form("Mdify Observation Doc",clear_on_submit=True):
+                    with col2:
+                        st.subheader('Queries')
+                        vvqueries=get_obs_related_vv(selected[0]['id'])
+                        st.dataframe(vvqueries)
+                    with col1:
+                        st.subheader('Summary')
+                        vvsummary=get_obs_related_vv_summary(selected[0]['id'])
+                        st.dataframe(vvsummary)
+                with st.expander('See Related Analytical Review & Other Remarks'):
+                    st.info('Analytical Review & Other Remarks')
+                    col1,col2 = st.columns(2)
                     
-                    Condition=st.text_area("Update Condition",key='condition')
-                    Cause=st.text_area("Update Cause",key='Cause')
-                    Effect=st.text_area("Update Effect",key='Effect')
-                    
-                    Conclusion=st.text_area("Update Conclusion",key='Conclusion1')
-                    
-                    Impact=st.text_area("Update Impact",key='Impact')
-                    Recomendation=st.text_area("Update Recomendation",key='Recomendation')
-                    Corrective_Action_Plan=st.text_area("Update Corrective_Action_Plan",key='Corrective_Action_Plan')
-                    Is_Adverse_Remark=st.selectbox("Update Is_Adverse_Remark",key='isactive',options=("Yes","No"))
-                    #Is_Adverse_Remark=st.text_input("Update Is_Adverse_Remark",key='Is_Adverse_Remark',value=selected[0]['Is_Adverse_Remark'])
-                    DeadLine=st.date_input('Update DeadLine',key='DeadLine')
-                    Annexure=st.file_uploader("Upload File",type=['pdf','xlsx','docx'],key='Annexure')
-                    file_name=st.text_input("Enter File Name without extention...Name should be Unique",key='comfilname')
-                    
-                                    
-                    roid=selected[0]['id']
-                                    
-                                    
-                    submitted_Obsr_mod =st.form_submit_button("Submit")
-                    if submitted_Obsr_mod:
-                        if Is_Adverse_Remark=="Yes" or Is_Adverse_Remark=="No":
-                            
-                            if Annexure is not None:
-                                                    #st.write(f'again-{file_name}')
-                                if file_name:
-                                    if Annexure.type=="application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-                                        extn="docx"
-                                    elif Annexure.type=="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-                                        extn='xlsx'
-                                    else :
-                                        extn='pdf'
-                                                        #if st.button("Upload file",key='uf1'):
-                                    comp_filename=f"{auditid}_{file_name}.{extn}"
-                                    file_name=f"{file_name}.{extn}"
-                                    with open(os.path.join("obsev_docs",comp_filename),"wb") as f: 
-                                        f.write(Annexure.getbuffer())
-                                                        
-                                    updatobr=modify_audit_observation(roid,Condition,Cause,Effect,Conclusion,Impact,Recomendation,Corrective_Action_Plan,Is_Adverse_Remark,DeadLine,file_name)                                        
-                                else:
-                                    st.info("Enter File Name")    
-                            else:
-                                                #st.write(f'befor-{file_name}')
-                                file_name=None
-                                                #st.write(f'then-{file_name}')
-                                                    #reviws_table.add_row({"Criteria":"criteria","Condition":"condition","Cause":"cause","Effect":"effect"})
-                                updatobr=modify_audit_observation(roid,Condition,Cause,Effect,Conclusion,Impact,Recomendation,Corrective_Action_Plan,Is_Adverse_Remark,DeadLine,file_name)                                        
-                                        
-                        else: 
-                            st.info('Is_Adverse_Remark can either be Yes or No') 
+                    with col2:
+                        st.subheader('Queries')
+                        vvqueries=get_obs_related_ar(selected[0]['id'])
+                        st.dataframe(vvqueries)
+                    with col1:
+                        st.subheader('Summary')
+                        vvsummary=get_obs_related_ar_summary(selected[0]['id'])
+                        st.dataframe(vvsummary)
                         
+                         
+                with st.expander('Update Observations...'): 
+                    with st.form("Modify Observation Doc",clear_on_submit=True):
+                        
+                        Condition=st.text_area("Update Condition",key='condition')
+                        Cause=st.text_area("Update Cause",key='Cause')
+                        Effect=st.text_area("Update Effect",key='Effect')
+                        
+                        Conclusion=st.text_area("Update Conclusion",key='Conclusion1')
+                        
+                        Impact=st.text_area("Update Impact",key='Impact')
+                        Recomendation=st.text_area("Update Recomendation",key='Recomendation')
+                        Corrective_Action_Plan=st.text_area("Update Corrective_Action_Plan",key='Corrective_Action_Plan')
+                        Is_Adverse_Remark=st.selectbox("Update Is_Adverse_Remark",key='isactive',options=("Yes","No"))
+                        #Is_Adverse_Remark=st.text_input("Update Is_Adverse_Remark",key='Is_Adverse_Remark',value=selected[0]['Is_Adverse_Remark'])
+                        DeadLine=st.date_input('Update DeadLine',key='DeadLine')
+                        Annexure=st.file_uploader("Upload File",type=['pdf','xlsx','docx'],key='Annexure')
+                        file_name=st.text_input("Enter File Name without extention...Name should be Unique",key='comfilname')
+                        
+                                        
+                        roid=selected[0]['id']
+                                        
+                                        
+                        submitted_Obsr_mod =st.form_submit_button("Submit")
+                        if submitted_Obsr_mod:
+                            if Is_Adverse_Remark=="Yes" or Is_Adverse_Remark=="No":
+                                
+                                if Annexure is not None:
+                                                        #st.write(f'again-{file_name}')
+                                    if file_name:
+                                        if Annexure.type=="application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+                                            extn="docx"
+                                        elif Annexure.type=="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+                                            extn='xlsx'
+                                        else :
+                                            extn='pdf'
+                                                            #if st.button("Upload file",key='uf1'):
+                                        comp_filename=f"{auditid}_{file_name}.{extn}"
+                                        file_name=f"{file_name}.{extn}"
+                                        with open(os.path.join("obsev_docs",comp_filename),"wb") as f: 
+                                            f.write(Annexure.getbuffer())
+                                                            
+                                        updatobr=modify_audit_observation(roid,Condition,Cause,Effect,Conclusion,Impact,Recomendation,Corrective_Action_Plan,Is_Adverse_Remark,DeadLine,file_name)                                        
+                                    else:
+                                        st.info("Enter File Name")    
+                                else:
+                                                    #st.write(f'befor-{file_name}')
+                                    file_name=None
+                                                    #st.write(f'then-{file_name}')
+                                                        #reviws_table.add_row({"Criteria":"criteria","Condition":"condition","Cause":"cause","Effect":"effect"})
+                                    updatobr=modify_audit_observation(roid,Condition,Cause,Effect,Conclusion,Impact,Recomendation,Corrective_Action_Plan,Is_Adverse_Remark,DeadLine,file_name)                                        
+                                            
+                            else: 
+                                st.info('Is_Adverse_Remark can either be Yes or No') 
+                            
             else:
                 st.info('Select a Record to Update ....')
         else:
@@ -233,7 +259,7 @@ def show_Audit_summary():
                                     
                         roid=selected[0]['id']
                         Observation=st.text_input("Update Observation",key='Observationm',value=selected[0]['Observation'])
-                        Impact=st.text_input("Update Impactm",key='Impact',value=selected[0]['Impact'])
+                        Impact=st.text_input("Update Impact",key='Impact',value=selected[0]['Impact'])
                         Area=st.text_input("Update Area",key='Aream',value=selected[0]['Impact'])
                         Need_for_Management_Intervention=st.text_input("Need_for_Management_Intervention",key='Need_for_Management_Interventionm',value=selected[0]['Need_for_Management_Intervention'])
                         risk_weight=st.slider("Set Risk Weights",min_value=1,max_value=10,key='slider2rwsm')
@@ -943,7 +969,7 @@ def Register_Clicked(userid, password,designation,displayname):
    
 def show_login_page():
     with loginSection:
-        tab1,tab2 =st.tabs(["   Existing Users  ","   New Users   "])
+        tab1,tab2 =st.tabs(["   Existing Users  ","   Change Password   "])
         with tab1:
             
             if st.session_state['loggedIn'] == False:
@@ -974,15 +1000,19 @@ def show_login_page():
         with tab2:
             with st.form("New User",clear_on_submit=True):
                 
-                st.title("Register")
+                st.title("Change Password")
                 userid = st.text_input (label="", value="", placeholder="Enter your user ID",key="k5")
-                password = st.text_input (label="", value="",placeholder="Set password", type="password",key="k6")
-                designation = st.text_input (label="", value="", placeholder="Enter your Designation",key="k3")
-                displayname = st.text_input (label="", value="", placeholder="Enter your Display Name",key="k4")
+                password = st.text_input (label="", value="",placeholder="Enter Current Password", type="password",key="k6")
+                new_pass = st.text_input (label="", value="", placeholder="Enter New Password", type="password",key="k3")
+                renew_pass = st.text_input (label="", value="", placeholder="ReEnter New Password", type="password",key="k4")
                 submit_user =st.form_submit_button("Submit")
                 if submit_user:
-                    createuser=create_user(displayname,userid,password,designation)
-                    st.info(createuser)
+                    if new_pass == renew_pass:
+                        #createuser=create_user(displayname,userid,password,designation)
+                        newpass=update_password(userid,password,new_pass)
+                        st.info(newpass)
+                    else:
+                        st.info('New Password and ReEntered Password not matching...')
                 #st.form_submit_button("Submit",on_click=Register_Clicked, args= (userid, password,designation,displayname))
                 #st.button ("Register", on_click=Register_Clicked, args= (userid, password,designation,displayname))
 def show_auditee():

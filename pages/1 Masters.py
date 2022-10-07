@@ -9,9 +9,9 @@ import json
 from st_aggrid import AgGrid,DataReturnMode, GridUpdateMode, GridOptionsBuilder, JsCode, grid_options_builder
 #from formatter import NullFormatter
 
-from functions import import_defalut_checklist,update_verification_criteria,update_risk_weights,get_user_rights,get_active_users,add_datato_ds,get_verification,get_audit
-from functions import get_risk_weights_ds_vouching,create_user,check_login,assign_user_rights,create_company,get_company_names,get_risk_weights_ds
-from functions import modify_audit_cheklist,add_audit_cheklist,del_checklist,get_audit_checklist,create_dataset,add_verification_criteria,get_dsname,get_entire_dataset,get_auditee_comp
+from functions import get_unlinked_obsr_ar,get_unlinked_obsr,update_password,import_defalut_checklist,update_verification_criteria,update_risk_weights,get_user_rights,get_active_users,add_datato_ds,get_verification,get_audit
+from functions import get_linked_obsr,get_risk_weights_ds_vouching,create_user,check_login,assign_user_rights,create_company,get_company_names,get_risk_weights_ds
+from functions import delete_ar_linking,insert_ar_linking,get_linked_obsr_ar,get_obs_related_vv_summary,delete_vv_linking,insert_vv_linking,modify_audit_cheklist,add_audit_cheklist,del_checklist,get_audit_checklist,create_dataset,add_verification_criteria,get_dsname,get_entire_dataset,get_auditee_comp
 import sqlite3
 from PIL import Image
 image = Image.open('autoaudit_t.png')
@@ -28,6 +28,7 @@ logOutSection = st.container()
 
 def show_masters():
     comp_name=st.session_state['Company']
+    auditid=int(st.session_state['AuditID'])
     with masters:
         st.write(f"User:-{st.session_state['User']}",f"  | Company:-{st.session_state['Company']}",
                  f"  | Audit:-{st.session_state['Audit']}",f"  | Role:-{st.session_state['Role']}")
@@ -36,7 +37,7 @@ def show_masters():
         with st.sidebar.markdown("# Masters "):
             master_options = st.radio(
             'Masters- Dataset',
-            ('Add New Data Set', 'Add Records to Data Set','Set Check List','Verification Check List','Set Risk Weights for Data Set','Compare with Audited Dataset'))            
+            ('Add New Data Set', 'Add Records to Data Set','Set Audit Check List','Verification Check List','Set Risk Weights for Data Set','Link Observation with Criterias','Compare with Audited Dataset'))            
         if master_options=='Add New Data Set':
             
             st.header("Add New Data Set")
@@ -229,8 +230,8 @@ def show_masters():
                         veri_df=get_verification(ds_name,int(st.session_state['AuditID']))
                         st.dataframe(veri_df)
                             
-        elif master_options=='Set Check List':
-            st.header("Set Check List")
+        elif master_options=='Set Audit Check List':
+            st.header("Set Check List for Audit")
             auditid=int(st.session_state['AuditID'])
             crud=st.radio("",('View','Add New','Modify','Delete'),horizontal=True,key='strcrudas')
             df=get_audit_checklist(auditid)
@@ -341,6 +342,229 @@ def show_masters():
                 else:
                         st.info('Select a Record to Delete ....')
 
+        elif master_options=='Link Observation with Criterias':
+            with st.sidebar:
+                link_options= st.selectbox('Select',options=("----",'Vouching & Verification','Analytical Review & Other'),key='linkingvv')
+            if link_options=="----":
+                st.header('Select option to Link to Observations')
+                
+            elif link_options=="Vouching & Verification":
+                st.header('Link Vouching & Verification to Observations')
+                
+                crud=st.radio("",('Add Link','Delete Link'),horizontal=True,key='linkrd')
+                if crud=="Add Link":
+                    #st.success('Select Observations to Add Link...')
+                    df=get_audit_checklist(auditid)
+                    builder = GridOptionsBuilder.from_dataframe(df)
+                    builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=10)
+                    builder.configure_selection(selection_mode="single",use_checkbox=True)
+                                #builder.configure_default_column(editable=True)
+                    go = builder.build()
+                                #uses the gridOptions dictionary to configure AgGrid behavior.
+                    grid_response=AgGrid(df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                                #selelcted row to show in audit AGGrid
+                    selected = grid_response['selected_rows']
+                    if selected:
+                        sel_Observations=selected[0]['Criteria']
+                        st.info(sel_Observations)
+                        with st.form(key='frlnk',clear_on_submit=True):
+                            col1 ,col2 =st.columns(2)
+                            with col1:
+                                st.success('Criterias that can be Linked')
+                                df_unlined=get_unlinked_obsr(selected[0]['id'])
+                                builder = GridOptionsBuilder.from_dataframe(df_unlined)
+                                builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=10)
+                                builder.configure_selection(selection_mode="multiple",use_checkbox=True)
+                                #builder.configure_default_column(editable=True)
+                                go = builder.build()
+                                #uses the gridOptions dictionary to configure AgGrid behavior.
+                                grid_response=AgGrid(df_unlined, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                                #selelcted row to show in audit AGGrid
+                                add_links = grid_response['selected_rows']
+                                                      
+                                addlinkb=st.form_submit_button("Add Selected >>")
+                                if addlinkb:
+                                    if add_links:
+                                        
+                                        add_links=pd.DataFrame(add_links)
+                                        #st.dataframe(add_links)
+                                        if '_selectedRowNodeInfo' in add_links.columns:
+                                            add_links.drop(['_selectedRowNodeInfo'], axis=1,inplace=True)
+                                        add_links.drop(['Criteria','DataSetName'],axis=1,inplace=True)
+                                        add_links.rename(columns = {'id':'vv_id'}, inplace = True)
+                                        add_links['obs_id']=selected[0]['id']
+                                        #st.dataframe(add_links)
+                                        
+                                        dfm=insert_vv_linking(add_links)
+                                        st.info(dfm)
+                                    else:
+                                        st.success('Select 1 or More Rows to Add Link...')
+                            with col2:
+                                st.success('Criterias that are Linked')
+                                df_linked=get_linked_obsr(selected[0]['id'])
+                                df_linked.drop(['id'],axis=1,inplace=True)
+                                st.dataframe(df_linked)  
+                    else:
+                        st.success('Select Observations to Add Link...')    
+                       
+                    
+                    
+                else:
+                    st.success('Select Observations to Delete Link...')
+                    df=get_audit_checklist(auditid)
+                    builder = GridOptionsBuilder.from_dataframe(df)
+                    builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=10)
+                    builder.configure_selection(selection_mode="single",use_checkbox=True)
+                                #builder.configure_default_column(editable=True)
+                    go = builder.build()
+                                #uses the gridOptions dictionary to configure AgGrid behavior.
+                    grid_response=AgGrid(df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                                #selelcted row to show in audit AGGrid
+                    selected = grid_response['selected_rows']
+                    
+                    if selected:
+                        sel_Observations=selected[0]['Criteria']
+                        st.info(sel_Observations)
+                        st.success('Criterias that are Linked')
+                        df_linked=get_linked_obsr(selected[0]['id'])
+                        #df_linked.drop(['id'],axis=1,inplace=True)
+                        #st.dataframe(df_linked)
+                        builder = GridOptionsBuilder.from_dataframe(df_linked)
+                        builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=10)
+                        builder.configure_selection(selection_mode="multiple",use_checkbox=True)
+                                #builder.configure_default_column(editable=True)
+                        go = builder.build()
+                                #uses the gridOptions dictionary to configure AgGrid behavior.
+                        grid_response=AgGrid(df_linked, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                                #selelcted row to show in audit AGGrid
+                        del_links = grid_response['selected_rows']                            
+                        dellinkb=st.button("Delete Selected Link >>",key='delinkb')
+                        if dellinkb:
+                                if del_links:
+                                    #st.write(len(del_links))
+                                    del_links=[d['id'] for d in del_links]
+                                    #st.write(del_links)
+                                    #st.write(del_links[0:len(del_links)])
+                                    #del_links=pd.DataFrame(del_links)
+                                    #st.dataframe(del_links)
+                                    #if '_selectedRowNodeInfo' in del_links.columns:
+                                        #del_links.drop(['_selectedRowNodeInfo'], axis=1,inplace=True)
+                                    #del_links.drop(['Criteria','DataSetName'],axis=1,inplace=True)
+                                    #del_links.rename(columns = {'id':'vv_id'}, inplace = True)
+                                    #del_links['obs_id']=selected[0]['id']
+                                    #st.dataframe(del_links)
+                                    
+                                    dfm=delete_vv_linking(del_links)
+                                    st.info(dfm)
+                                else:
+                                    st.success('Select 1 or More Rows to Delete Link...')
+                    else:
+                        st.success('Select Observations to Delete Link...')    
+                    
+                    
+            else:
+                st.header('Link Analytical Review & Other Remarks to Observations')
+                
+                crud=st.radio("",('Add Link','Delete Link'),horizontal=True,key='linkrdar')
+                if crud=="Add Link":
+                    #st.success('Select Observations to Add Link...')
+                    df=get_audit_checklist(auditid)
+                    builder = GridOptionsBuilder.from_dataframe(df)
+                    builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=10)
+                    builder.configure_selection(selection_mode="single",use_checkbox=True)
+                                #builder.configure_default_column(editable=True)
+                    go = builder.build()
+                                #uses the gridOptions dictionary to configure AgGrid behavior.
+                    grid_response=AgGrid(df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                                #selelcted row to show in audit AGGrid
+                    selected = grid_response['selected_rows']
+                    if selected:
+                        sel_Observations=selected[0]['Criteria']
+                        st.info(sel_Observations)
+                        with st.form(key='frlnkar',clear_on_submit=True):
+                            col1 ,col2 =st.columns(2)
+                            with col1:
+                                st.success('Criterias that can be Linked')
+                                df_unlined=get_unlinked_obsr_ar(selected[0]['id'])
+                                builder = GridOptionsBuilder.from_dataframe(df_unlined)
+                                builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=10)
+                                builder.configure_selection(selection_mode="multiple",use_checkbox=True)
+                                #builder.configure_default_column(editable=True)
+                                go = builder.build()
+                                #uses the gridOptions dictionary to configure AgGrid behavior.
+                                grid_response=AgGrid(df_unlined, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                                #selelcted row to show in audit AGGrid
+                                add_links = grid_response['selected_rows']
+                                                    
+                                addlinkb=st.form_submit_button("Add Selected >>")
+                                if addlinkb:
+                                    if add_links:
+                                        
+                                        add_links=pd.DataFrame(add_links)
+                                        #st.dataframe(add_links)
+                                        if '_selectedRowNodeInfo' in add_links.columns:
+                                            add_links.drop(['_selectedRowNodeInfo'], axis=1,inplace=True)
+                                        add_links.drop(['Criteria','DataSetName'],axis=1,inplace=True)
+                                        add_links.rename(columns = {'Id':'ar_id'}, inplace = True)
+                                        add_links['obs_id']=selected[0]['id']
+                                        #st.dataframe(add_links)
+                                        
+                                        dfm=insert_ar_linking(add_links)
+                                        st.info(dfm)
+                                    else:
+                                        st.success('Select 1 or More Rows to Add Link...')
+                            with col2:
+                                st.success('Criterias that are Linked')
+                                df_linked=get_linked_obsr_ar(selected[0]['id'])
+                                df_linked.drop(['id'],axis=1,inplace=True)
+                                st.dataframe(df_linked)    
+                    else:
+                        st.success('Select Observations to Add Link...')    
+                                       
+                else:
+                    st.success('Select Observations to Delete Link...')
+                    df=get_audit_checklist(auditid)
+                    builder = GridOptionsBuilder.from_dataframe(df)
+                    builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=10)
+                    builder.configure_selection(selection_mode="single",use_checkbox=True)
+                                #builder.configure_default_column(editable=True)
+                    go = builder.build()
+                                #uses the gridOptions dictionary to configure AgGrid behavior.
+                    grid_response=AgGrid(df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                                #selelcted row to show in audit AGGrid
+                    selected = grid_response['selected_rows']
+                    
+                    if selected:
+                        sel_Observations=selected[0]['Criteria']
+                        st.info(sel_Observations)
+                        st.success('Criterias that are Linked')
+                        df_linked=get_linked_obsr_ar(selected[0]['id'])
+                        #df_linked.drop(['id'],axis=1,inplace=True)
+                        #st.dataframe(df_linked)
+                        builder = GridOptionsBuilder.from_dataframe(df_linked)
+                        builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=10)
+                        builder.configure_selection(selection_mode="multiple",use_checkbox=True)
+                                #builder.configure_default_column(editable=True)
+                        go = builder.build()
+                                #uses the gridOptions dictionary to configure AgGrid behavior.
+                        grid_response=AgGrid(df_linked, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                                #selelcted row to show in audit AGGrid
+                        del_links = grid_response['selected_rows']                            
+                        dellinkb=st.button("Delete Selected Link >>",key='delinkbard')
+                        if dellinkb:
+                                if del_links:
+                                    #st.write(len(del_links))
+                                    del_links=[d['id'] for d in del_links]
+                                    
+                                    
+                                    dfm=delete_ar_linking(del_links)
+                                    st.info(dfm)
+                                else:
+                                    st.success('Select 1 or More Rows to Delete Link...')
+                    else:
+                        st.success('Select Observations to Delete Link...')    
+                
+                
                        
                                                    
         elif master_options=='Set Risk Weights for Data Set':
@@ -491,7 +715,7 @@ def Register_Clicked(displayname,userid ,password,designation):
     
 def show_login_page():
     with loginSection:
-        tab1,tab2 =st.tabs(["   Existing Users  ","   New Users   "])
+        tab1,tab2 =st.tabs(["   Existing Users  ","   Change Password   "])
         with tab1:
             
             if st.session_state['loggedIn'] == False:
@@ -522,17 +746,19 @@ def show_login_page():
         with tab2:
             with st.form("New User",clear_on_submit=True):
                 
-                st.title("Register")
+                st.title("Change Password")
                 userid = st.text_input (label="", value="", placeholder="Enter your user ID",key="k5")
-                password = st.text_input (label="", value="",placeholder="Set password", type="password",key="k6")
-                designation = st.text_input (label="", value="", placeholder="Enter your Designation",key="k3")
-                displayname = st.text_input (label="", value="", placeholder="Enter your Display Name",key="k4")
+                password = st.text_input (label="", value="",placeholder="Enter Current Password", type="password",key="k6")
+                new_pass = st.text_input (label="", value="", placeholder="Enter New Password", type="password",key="k3")
+                renew_pass = st.text_input (label="", value="", placeholder="ReEnter New Password", type="password",key="k4")
                 submit_user =st.form_submit_button("Submit")
                 if submit_user:
-                    createuser=create_user(displayname,userid,password,designation)
-                    st.info(createuser)
-                    
-                #st.form_submit_button("Submit",on_click=Register_Clicked, args= (displayname,userid, password,designation))
+                    if new_pass == renew_pass:
+                        #createuser=create_user(displayname,userid,password,designation)
+                        newpass=update_password(userid,password,new_pass)
+                        st.info(newpass)
+                    else:
+                        st.info('New Password and ReEntered Password not matching...')
                 #st.button ("Register", on_click=Register_Clicked, args= (userid, password,designation,displayname))
 
 def show_auditee():

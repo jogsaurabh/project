@@ -2,7 +2,7 @@ from datetime import datetime
 from functions import get_user_rights,get_active_users,add_datato_ds,get_verification,get_audit,add_audit_verification
 from functions import create_user,check_login,get_dsname_personresponsible,assign_user_rights,create_company,get_company_names,get_pending_queries
 from functions import update_mgt_comm,update_query_status_ar,get_ar_queries,get_vv_quries,create_dataset,add_verification_criteria,get_dsname,get_entire_dataset,get_auditee_comp
-from functions import update_compliance_remarks,get_pending_Compliance,update_corre_action,get_pending_Corrective,get_pending_obser,add_query_reply_AR,get_dataset,update_query_status,add_analytical_review,insert_vouching,update_audit_status,get_ar_for_ds,add_query_reply
+from functions import update_password,update_compliance_remarks,get_pending_Compliance,update_corre_action,get_pending_Corrective,get_pending_obser,add_query_reply_AR,get_dataset,update_query_status,add_analytical_review,insert_vouching,update_audit_status,get_ar_for_ds,add_query_reply
 import pandas as pd
 import os
 import streamlit as st
@@ -242,7 +242,7 @@ def Register_Clicked(userid, password,designation,displayname):
    
 def show_login_page():
     with loginSection:
-        tab1,tab2 =st.tabs(["   Existing Users  ","   New Users   "])
+        tab1,tab2 =st.tabs(["   Existing Users  ","   Change Password   "])
         with tab1:
             
             if st.session_state['loggedIn'] == False:
@@ -273,15 +273,19 @@ def show_login_page():
         with tab2:
             with st.form("New User",clear_on_submit=True):
                 
-                st.title("Register")
+                st.title("Change Password")
                 userid = st.text_input (label="", value="", placeholder="Enter your user ID",key="k5")
-                password = st.text_input (label="", value="",placeholder="Set password", type="password",key="k6")
-                designation = st.text_input (label="", value="", placeholder="Enter your Designation",key="k3")
-                displayname = st.text_input (label="", value="", placeholder="Enter your Display Name",key="k4")
+                password = st.text_input (label="", value="",placeholder="Enter Current Password", type="password",key="k6")
+                new_pass = st.text_input (label="", value="", placeholder="Enter New Password", type="password",key="k3")
+                renew_pass = st.text_input (label="", value="", placeholder="ReEnter New Password", type="password",key="k4")
                 submit_user =st.form_submit_button("Submit")
                 if submit_user:
-                    createuser=create_user(displayname,userid,password,designation)
-                    st.info(createuser)
+                    if new_pass == renew_pass:
+                        #createuser=create_user(displayname,userid,password,designation)
+                        newpass=update_password(userid,password,new_pass)
+                        st.info(newpass)
+                    else:
+                        st.info('New Password and ReEntered Password not matching...')
                 #st.form_submit_button("Submit",on_click=Register_Clicked, args= (userid, password,designation,displayname))
                 #st.button ("Register", on_click=Register_Clicked, args= (userid, password,designation,displayname))
 

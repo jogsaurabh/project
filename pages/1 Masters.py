@@ -1,6 +1,7 @@
 #from logging import PlaceHolder
 from dataclasses import field
 from queue import Empty
+from matplotlib.widgets import Button
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -9,9 +10,9 @@ import json
 from st_aggrid import AgGrid,DataReturnMode, GridUpdateMode, GridOptionsBuilder, JsCode, grid_options_builder
 #from formatter import NullFormatter
 
-from functions import get_unlinked_obsr_ar,get_unlinked_obsr,update_password,import_defalut_checklist,update_verification_criteria,update_risk_weights,get_user_rights,get_active_users,add_datato_ds,get_verification,get_audit
-from functions import get_linked_obsr,get_risk_weights_ds_vouching,create_user,check_login,assign_user_rights,create_company,get_company_names,get_risk_weights_ds
-from functions import delete_ar_linking,insert_ar_linking,get_linked_obsr_ar,get_obs_related_vv_summary,delete_vv_linking,insert_vv_linking,modify_audit_cheklist,add_audit_cheklist,del_checklist,get_audit_checklist,create_dataset,add_verification_criteria,get_dsname,get_entire_dataset,get_auditee_comp
+from functions import add_sampling,delete_sampling,get_unlinked_obsr_ar,get_unlinked_obsr,update_password,import_defalut_checklist,update_verification_criteria,update_risk_weights,get_user_rights,get_active_users,add_datato_ds,get_verification,get_audit
+from functions import get_dataset_sampled,get_linked_obsr,get_risk_weights_ds_vouching,create_user,check_login,assign_user_rights,create_company,get_company_names,get_risk_weights_ds
+from functions import get_dataset_nonsampled,delete_ar_linking,insert_ar_linking,get_linked_obsr_ar,get_obs_related_vv_summary,delete_vv_linking,insert_vv_linking,modify_audit_cheklist,add_audit_cheklist,del_checklist,get_audit_checklist,create_dataset,add_verification_criteria,get_dsname,get_entire_dataset,get_auditee_comp
 import sqlite3
 from PIL import Image
 image = Image.open('autoaudit_t.png')
@@ -29,6 +30,10 @@ logOutSection = st.container()
 def show_masters():
     comp_name=st.session_state['Company']
     auditid=int(st.session_state['AuditID'])
+    ds_names=get_dsname(int(st.session_state['AuditID']))
+    ds_names.loc[-1]=['---']
+    ds_names.index=ds_names.index+1
+    ds_names.sort_index(inplace=True)
     with masters:
         st.write(f"User:-{st.session_state['User']}",f"  | Company:-{st.session_state['Company']}",
                  f"  | Audit:-{st.session_state['Audit']}",f"  | Role:-{st.session_state['Role']}")
@@ -37,7 +42,7 @@ def show_masters():
         with st.sidebar.markdown("# Masters "):
             master_options = st.radio(
             'Masters- Dataset',
-            ('Add New Data Set', 'Add Records to Data Set','Set Audit Check List','Verification Check List','Set Risk Weights for Data Set','Link Observation with Criterias','Compare with Audited Dataset'))            
+            ('Add New Data Set', 'Add Records to Data Set','Sampling Data Set','Set Audit Check List','Verification Check List','Set Risk Weights for Data Set','Link Observation with Criterias','Compare with Audited Dataset'))            
         if master_options=='Add New Data Set':
             
             st.header("Add New Data Set")
@@ -190,46 +195,188 @@ def show_masters():
                                 del [[dataframe,df]]
                                 dataframe=pd.DataFrame()
                                 df=pd.DataFrame()  
-                
+        
+        elif master_options=='Sampling Data Set':
+            st.header("Select Sample to Audit Data Set")
+            ds_name=st.selectbox("",ds_names,key="sb1sam")
+            if ds_name=="---":
+                st.success("Select Data Set Name")
+            else:
+                ds_file_name=f"{st.session_state['Company']}_{(st.session_state['AuditID'])}_{ds_name}"
+                with st.expander("Add Sampling"):
+                    
+                    st.info("Select Sampling Method")
+                    setsam=st.radio("",('Select All','Filter & Select','Random Sampling'),horizontal=True,key='strcrudassam')
+                    if setsam=='Filter & Select':
+                        st.subheader('Select Rows to Add to Sample Data')
+                        #g
+                        #sel_Observations=selected[0]['Criteria']
+                            #st.info(sel_Observations)
+                        with st.form(key='frlnksam',clear_on_submit=True):
+                            col1 ,col2 =st.columns(2)
+                            with col1:
+                                    
+                                    df_unsampled=get_dataset_nonsampled(ds_file_name)
+                                    st.success(f'Rows Not yet Sampled - {len(df_unsampled)}')
+                                    builder = GridOptionsBuilder.from_dataframe(df_unsampled)
+                                    builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=15)
+                                    builder.configure_selection(selection_mode="multiple",use_checkbox=True)
+                                    #builder.configure_default_column(editable=True)
+                                    go = builder.build()
+                                    #uses the gridOptions dictionary to configure AgGrid behavior.
+                                    grid_response=AgGrid(df_unsampled, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                                    #selelcted row to show in audit AGGrid
+                                    add_links = grid_response['selected_rows']
+                                                        
+                                    addlinkb=st.form_submit_button("Add Selected >>")
+                                    if addlinkb:
+                                        if add_links:
+                                            
+                                            add_links=[d['index'] for d in add_links]
+                                                #st.write(del_links)                                              
+                                            dfm=add_sampling(ds_file_name,add_links)
+                                            st.info(dfm)
+                                        else:
+                                            st.success('Select 1 or More Rows to Add Sample Data...')
+                            with col2:
+                                    
+                                    df_sampled=get_dataset_sampled(ds_file_name)
+                                    st.success(f'Rows Sampled - {len(df_sampled)}')
+                                    #df_linked.drop(['id'],axis=1,inplace=True)
+                                    st.dataframe(df_sampled) 
+                                    
+                    elif setsam=='Select All':
+                        st.subheader('Add All the Rows to Sample Data')
+                        df_unsampled=get_dataset_nonsampled(ds_file_name)
+                        st.success(f'Total Rows Not yet Sampled - {len(df_unsampled)}')
+                        st.dataframe(df_unsampled)
+                        if len(df_unsampled)>0:
+                            cmdadd=st.button("Add All to Sample Data",key='adalls')
+                            if cmdadd:
+                                rows=df_unsampled['index']
+                                #st.write(rows)
+                                added=add_sampling(ds_file_name,rows)
+                                st.info(added)
+                    else:
+                        st.subheader('Add Random Rows to Sample Data')
+                        col1,col2=st.columns(2)
+                        with col1:
+                            df_unsampled=get_dataset_nonsampled(ds_file_name)
+                            st.success(f'Total Rows Not yet Sampled - {len(df_unsampled)}')
+                            st.dataframe(df_unsampled)
+                        with col2:   
+                            if len(df_unsampled)>0:
+                                st.success('Select Method')
+                                
+                                randops=st.radio('',("Get Random Number of Rows"," Get % of Total Rows"))
+                                if randops=='Get Random Number of Rows':
+                                    nrow=st.number_input("How many Random Rows you want to Select...",min_value=1,max_value=len(df_unsampled),key='nrow')
+                                    
+                                    #addsam=st.button("Get Random Rows",key='samp1')
+                                    
+                                    rand=df_unsampled.sample(n=nrow,random_state=1)
+                                        
+                                                                                   
+                                    
+                                else:
+                                    nper=st.number_input("How much % of Random Rows you want to Select...",min_value=1.00,max_value=100.00,key='nper')
+                                    rand=df_unsampled.sample(frac=nper/100,random_state=1)
+                                    
+                                if len(rand)>0:
+                                    st.dataframe(rand)
+                                    rows=rand['index'].tolist()
+                                    #samp=(f'Add above {len(rand)} Rows to Sample Data-')
+                                    addsam=st.button("Add Above to Sample",key='samp')
+                                    if addsam:
+                                        
+                                        st.write(rows)
+                                        added=add_sampling(ds_file_name,rows)
+                                        st.info(added)  
+                                
+                                
+                        
+                with st.expander("Remove Sampling"):
+                    st.info("Select Rows to Remove from Sample Data")
+                    with st.form(key='frlnksamd',clear_on_submit=True):
+                            col1 ,col2 =st.columns(2)
+                            with col1:
+                                    #st.success('Rows Sampled and not Yet Audited')
+                                    df_sampled=get_dataset_sampled(ds_file_name)
+                                    st.success(f'Rows Sampled and not Yet Audited - {len(df_sampled)}')
+                                    builder = GridOptionsBuilder.from_dataframe(df_sampled)
+                                    builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=15)
+                                    builder.configure_selection(selection_mode="multiple",use_checkbox=True)
+                                    #builder.configure_default_column(editable=True)
+                                    go = builder.build()
+                                    #uses the gridOptions dictionary to configure AgGrid behavior.
+                                    grid_response=AgGrid(df_sampled, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                                    #selelcted row to show in audit AGGrid
+                                    del_links = grid_response['selected_rows']
+                                                                
+                                    dellinkb=st.form_submit_button("Remove Selected >>")
+                                    if dellinkb:
+                                            if del_links:
+                                                #st.write(len(del_links))
+                                                del_links=[d['index'] for d in del_links]
+                                                #st.write(del_links)                                              
+                                                dfm=delete_sampling(ds_file_name,del_links)
+                                                st.info(dfm)
+                                            else:
+                                                st.success('Select 1 or More Rows to Remove from Sample Data...')
+                            with col2:
+                                    #st.success('Rows Un-Sampled')
+                                    df_unsampled=get_dataset_nonsampled(ds_file_name)
+                                    st.success(f'Rows Un-Sampled - {len(df_unsampled)}')
+                                    #df_linked.drop(['id'],axis=1,inplace=True)
+                                    st.dataframe(df_unsampled) 
+                        
+                    
+                    
+                    
+                    
         elif master_options=='Verification Check List':
                 st.header("Add Verification Check List")
 
-                st.success("Select Data Set Name")
-                ds_names=get_dsname(int(st.session_state['AuditID']))
+                
+                #ds_names=get_dsname(int(st.session_state['AuditID']))
                 ds_name=st.selectbox("",ds_names,key="sb1")
                     #if st.button("View Current check list",key="cc1"):
                         #veri_df=get_verification(ds_name,int(st.session_state['AuditID']))
                         #st.dataframe(veri_df)
                     #Chek_List=pd.DataFrame()
-                with st.form("Verification Criteria",clear_on_submit=True):
-                        c1,c2 =st.columns(2)
-                        with c1:
-                            Crtiteria=st.text_area("Enter Verification Criteria")
-                        with c2:
-                            risk_weight=st.slider("Set Risk Weights",min_value=1,max_value=10,key='slider2')
-                            
-                            if risk_weight >=0 and risk_weight <=3:
-                                risk_category='Low'
-                            elif risk_weight >=4 and risk_weight <=7:
-                                risk_category='Medium'
-                            else:
-                                risk_category='High'
-                        
-                                            
-                        submitted = st.form_submit_button("Submit")
-                        if submitted:
-                            #add above to database
-                            if Crtiteria:
-                                sta=add_verification_criteria(Crtiteria,ds_name,comp_name,risk_weight,risk_category)
+                if ds_name=="---":
+                    st.success("Select Data Set Name")
+                else:
+                    
+                    with st.form("Verification Criteria",clear_on_submit=True):
+                            c1,c2 =st.columns(2)
+                            with c1:
+                                Crtiteria=st.text_area("Enter Verification Criteria")
+                            with c2:
+                                risk_weight=st.slider("Set Risk Weights",min_value=1,max_value=10,key='slider2')
                                 
-                            else:
-                                st.write('Criteria can not be blank.')
-                        
-                with st.expander("View Verification Criteria"):
-                        st.header("Verification Criteria")
-                        veri_df=get_verification(ds_name,int(st.session_state['AuditID']))
-                        st.dataframe(veri_df)
+                                if risk_weight >=0 and risk_weight <=3:
+                                    risk_category='Low'
+                                elif risk_weight >=4 and risk_weight <=7:
+                                    risk_category='Medium'
+                                else:
+                                    risk_category='High'
                             
+                                                
+                            submitted = st.form_submit_button("Submit")
+                            if submitted:
+                                #add above to database
+                                if Crtiteria:
+                                    sta=add_verification_criteria(Crtiteria,ds_name,comp_name,risk_weight,risk_category)
+                                    
+                                else:
+                                    st.write('Criteria can not be blank.')
+                            
+                    with st.expander("View Verification Criteria"):
+                            st.header("Verification Criteria")
+                            veri_df=get_verification(ds_name,int(st.session_state['AuditID']))
+                            st.dataframe(veri_df)
+                                
         elif master_options=='Set Audit Check List':
             st.header("Set Check List for Audit")
             auditid=int(st.session_state['AuditID'])
@@ -443,16 +590,7 @@ def show_masters():
                                 if del_links:
                                     #st.write(len(del_links))
                                     del_links=[d['id'] for d in del_links]
-                                    #st.write(del_links)
-                                    #st.write(del_links[0:len(del_links)])
-                                    #del_links=pd.DataFrame(del_links)
-                                    #st.dataframe(del_links)
-                                    #if '_selectedRowNodeInfo' in del_links.columns:
-                                        #del_links.drop(['_selectedRowNodeInfo'], axis=1,inplace=True)
-                                    #del_links.drop(['Criteria','DataSetName'],axis=1,inplace=True)
-                                    #del_links.rename(columns = {'id':'vv_id'}, inplace = True)
-                                    #del_links['obs_id']=selected[0]['id']
-                                    #st.dataframe(del_links)
+                                    
                                     
                                     dfm=delete_vv_linking(del_links)
                                     st.info(dfm)

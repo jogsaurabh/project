@@ -210,7 +210,7 @@ def create_dataset(df,table_name,comp_name,person_responsible):
         cursor.close()
         # Alter table to add  audit Sampled?
         cursor = sqliteConnection.cursor()
-        cursor.execute(f"ALTER TABLE '{table_name}' ADD Sampled TEXT NOT NULL DEFAULT 'Yes'")
+        cursor.execute(f"ALTER TABLE '{table_name}' ADD Sampled TEXT NOT NULL DEFAULT 'No'")
         sqliteConnection.commit()
         cursor.close()
         # add default risk to risk master table
@@ -319,11 +319,11 @@ def get_dsname_personresponsible(auditid,pr):
     return DSName
 
 def get_dataset(DSname):
-    #this is for auditing
+    #this is for auditing which is samplled
     try:
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
-        query=f"SELECT * from '{DSname}' where Status ='Unaudited'"
+        query=f"SELECT * from '{DSname}' where Status ='Unaudited' and Sampled ='Yes'"
         sql_query=pd.read_sql_query(query,sqliteConnection)
         df = pd.DataFrame(sql_query)
         cursor.close()
@@ -336,6 +336,45 @@ def get_dataset(DSname):
             #message=("The SQLite connection is closed")
         
     return df
+
+def get_dataset_nonsampled(DSname):
+    #this is for auditing
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        query=f"SELECT * from '{DSname}' where Sampled ='No'"
+        sql_query=pd.read_sql_query(query,sqliteConnection)
+        df = pd.DataFrame(sql_query)
+        cursor.close()
+    except sqlite3.Error as error:
+        df=("Error while creating Data Set Criteria", error)
+        
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+        
+    return df
+
+def get_dataset_sampled(DSname):
+    #this is sampled but not audited
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        query=f"SELECT * from '{DSname}' where Sampled ='Yes' and Status ='Unaudited'"
+        sql_query=pd.read_sql_query(query,sqliteConnection)
+        df = pd.DataFrame(sql_query)
+        cursor.close()
+    except sqlite3.Error as error:
+        df=("Error while creating Data Set Criteria", error)
+        
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+        
+    return df
+
 
 def get_verification(DSname,Audit_id):
     try:
@@ -2127,3 +2166,55 @@ def get_obs_related_ar_summary(obr_id):
                 #message=("The SQLite connection is closed")
             
     return df
+
+def delete_sampling(dsfilename,del_links):
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        listvalues=','.join([str(i) for i in del_links])
+        #currentime=datetime.now()
+        sqlite_insert_with_param = f"update {dsfilename} SET Sampled='No' WHERE `index` in ({listvalues})"
+        #st.write(sqlite_insert_with_param)
+        #data_tuple = (title,remarks,file_ref,doc_type,comp_name,st.session_state['User'],currentime)
+        #st.info("Done2")
+        cursor.execute(sqlite_insert_with_param)
+        sqliteConnection.commit()
+        cursor.close()
+        #st.info("Record Deleted...")
+        message_verify=("Record Deleted...")
+    except sqlite3.Error as error:
+        message_verify=("Error while Deleting", error)
+        st.info(error)
+        #st.info(comp_name)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+            
+    return message_verify
+
+def add_sampling(dsfilename,del_links):
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        listvalues=','.join([str(i) for i in del_links])
+        #currentime=datetime.now()
+        sqlite_insert_with_param = f"update {dsfilename} SET Sampled='Yes' WHERE `index` in ({listvalues})"
+        #st.write(sqlite_insert_with_param)
+        #data_tuple = (title,remarks,file_ref,doc_type,comp_name,st.session_state['User'],currentime)
+        #st.info("Done2")
+        cursor.execute(sqlite_insert_with_param)
+        sqliteConnection.commit()
+        cursor.close()
+        #st.info("Record Deleted...")
+        message_verify=("Records add for Sampling...")
+    except sqlite3.Error as error:
+        message_verify=("Error while Deleting", error)
+        st.info(error)
+        #st.info(comp_name)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+            
+    return message_verify

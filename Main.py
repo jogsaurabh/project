@@ -1,8 +1,11 @@
 import streamlit as st
 import pandas as pd
+import pickle
 import numpy as np
+import os.path
+from datetime import date,timedelta
 from functions import update_password,get_active_users_created_by_me,get_comp_created_by_user,get_user_rights,get_active_users,get_audit,get_comp_by_user,creat_audit
-from functions import get_linked_obsr_ar,create_user,check_login,assign_user_rights,create_company,get_company_names
+from functions import get_user_rights_created_byMe,get_linked_obsr_ar,create_user,check_login,assign_user_rights,create_company,get_company_names
 #import sqlite3
 from PIL import Image
 image = Image.open('autoaudit_t.png')
@@ -38,7 +41,89 @@ def login(userName: str, password: str) -> bool:
     
     #st.write(comp_name)
     #st.info(reply)
+def show_admin():
+    st.title("Admin") 
+    st.write(f"User:-{st.session_state['User']}",f"  | Company:-{st.session_state['Company']}",
+                 f"  | Audit:-{st.session_state['Audit']}",f"  | Role:-{st.session_state['Role']}")
+    
+    with st.sidebar.markdown("# Masters "):
+        master_options = st.radio("Select",('Create User','Update Licence'))
+    exp_date=date.today()+timedelta(days=365)
+    if  master_options=="Create User":
+        with st.form("New User-Manger",clear_on_submit=True):
+                
+                st.title("Create User-Manager for New Licence")
+                userid = st.text_input (label="", value="", placeholder="Enter user ID",key="ck5l")
+                password = "Pass123"
+                designation = st.text_input (label="", value="", placeholder="Enter Designation",key="ck3l")
+                displayname = st.text_input (label="", value="", placeholder="Enter Display Name",key="ck4l")
+                
+                exp_date=st.date_input("Set Licence Expiry Date:-",value=exp_date,key="exp_date1")
+                submit_userc =st.form_submit_button("Submit")
+                if submit_userc:
+                    # create User with above
+                    createuser=create_user(displayname,userid,password,designation)
+                    st.info(createuser)
+                    # add company- Test
+                    ceratcomp=create_company("Test", "Test","Test",0,"test")
+                    st.info(ceratcomp)
+                    # add Audit- Test
+                    cretaeaudit=creat_audit("Test","Test", "Test","Test")
+                    st.info(cretaeaudit)
+                    # add Role of Manger for this user
+                    userright=assign_user_rights(userid,"Test","Manager")
+                    st.info(userright)
+                    #set Licence Expiry date
+                    with open('file.pkl', 'wb') as file:
+      
+                        # A new file will be created
+                        pickle.dump(exp_date, file)
+                    
+                    st.success(f"Licence Expiry Date Set to :- {exp_date}")
+                                 
+    else:
+        #"Set Licence Expiry"     
+        if os.path.isfile('file.pkl'):
+            
+            with open('file.pkl', 'rb') as file:
+                        # Call load method to deserialze
+                exp_date = pickle.load(file)     
+            st.info(f"Licence Expiry Date is :- {exp_date}")
+            if exp_date> date.today():
+                    st.info("Licenec is Valid")
+            else:
+                st.info("Licenec has Expired")
+            exp_date=st.date_input("Set Licence Expiry Date:-",value=exp_date,key="exp_date")
 
+            setexpdt=st.button("Set Licence Expiry Date",key="setlexb")
+            if setexpdt:
+                
+                with open('file.pkl', 'wb') as file:
+            
+                    # A new file will be created
+                    pickle.dump(exp_date, file)
+                with open('file.pkl', 'rb') as file:                
+                    # Call load method to deserialze
+                    exp_date = pickle.load(file)
+                st.success(f"Licence Expiry Date Set to :- {exp_date}")
+                
+        else:
+            st.info ("Expiry Date is not Set")
+            exp_date=st.date_input("Set Licence Expiry Date:-",value=exp_date,key="exp_date2")
+
+            setexpdt=st.button("Set Licence Expiry Date",key="setlexb2")
+            if setexpdt:
+                
+                with open('file.pkl', 'wb') as file:
+            
+                    # A new file will be created
+                    pickle.dump(exp_date, file)
+                with open('file.pkl', 'rb') as file:                
+                    # Call load method to deserialze
+                    exp_date = pickle.load(file)
+                st.success(f"Licence Expiry Date Set to :- {exp_date}")
+        # Open & Read  the file in binary mode
+        
 def assign_user_rights_show():
     st.title("Assign User")
     
@@ -48,10 +133,11 @@ def show_main_page():
         #st.success(f"{st.session_state['Company']}_{st.session_state['AuditID']}_filename")
         st.write(f"User:-{st.session_state['User']}",f"  | Company:-{st.session_state['Company']}",
                  f"  | Audit:-{st.session_state['Audit']}",f"  | Role:-{st.session_state['Role']}")
-        
+        #st.write(f"Audit Id:-{st.session_state['AuditID']}")
         with st.sidebar.markdown("# Masters "):
             master_options = st.radio("Select",('Create Company','Create User','Assign User Rights','Add New Audit'))
         #st.sidebar.button("Assign User Rights",key="ba1",on_click=assign_user_rights_show)
+        
         if master_options=="Create Company":
             #st.success("""For First Time Login- """)
             with st.form("Create New Company",clear_on_submit=True):
@@ -59,15 +145,17 @@ def show_main_page():
                         comp_name = st.text_input (label="",value="",placeholder="Enter company Name",key="comp_name1")
                         com_address = st.text_input (label="", value="",placeholder="Enter company Address",key="com_address1")
                         com_email = st.text_input (label="", value="", placeholder="Enter email",key="com_email1")
-                        com_mobile = st.number_input("Mobile No",min_value=1111111111,max_value=9999999999,key="com_mobile1")
-                        com_person = st.text_input (label="", value="", placeholder="Enter Contact Person",key="com_person1")
+                        #com_mobile = st.number_input("Mobile No",min_value=1111111111,max_value=9999999999,key="com_mobile1")
+                        #com_person = st.text_input (label="", value="", placeholder="Enter Contact Person",key="com_person1")
                         
                         #st.write(comp_name)
                         #st.button("Submit",on_click=create_company, args= (comp_name, com_address,com_email,com_mobile,com_person))
                         #st.button("Submit",key="sub11"):
                         if st.form_submit_button("Submit"):
-                            create_company(comp_name, com_address,com_email,com_mobile,com_person)
-        
+                            message_verify=create_company(comp_name, com_address,com_email,1234567890,'com_person')
+                            st.info(message_verify)
+        #elif master_options=="Home":
+            #st.title("Welcome to AutoAudit")
         elif master_options=="Create User":
             with st.form("New User",clear_on_submit=True):
                 
@@ -82,19 +170,12 @@ def show_main_page():
                     st.info(createuser)
                 #st.form_submit_button("Submit",on_click=Register_Clicked, args= (userid, password,designation,displayname))
                 #st.button ("Register", on_click=Register_Clicked, args= (userid, password,designation,displayname))
-
             
                             
         elif master_options=="Assign User Rights":
-            showrights=st.button("Show User Rights",key="seur")
-            if showrights:
-                
-                userrights_df=get_user_rights()
-                st.title("Existing User Rights")
-                st.dataframe(userrights_df)
             
             users=get_active_users_created_by_me()
-            #if users created by me then oly do following
+            #if users created by me then only do following
             if not users.empty:
                 if st.session_state['User']=='admin':
                     companies=get_company_names()
@@ -121,15 +202,25 @@ def show_main_page():
                                     #users=get_unassigned_users(comapname)
                             user=st.selectbox("Select User",users,key="usersb")
                             role=st.selectbox("Select Role",("Manager","Auditor","Auditee"),key="usersb1")
-                        
-                        
+                                               
                             submitb = st.form_submit_button("Submit")
                             if submitb:
-                                assign_user_rights(user,company_name,role)
-                                #st.write("OK")
+                                message_verify=assign_user_rights(user,company_name,role)
+                                st.info(message_verify)
+                                
             else:
                 st.info("You have not created any users....you can only assign rights to User Created by you")
                                     #assign_user_rights(user,company_name,role)
+            #show user rights
+            showrights=st.button("Show User Rights",key="seur")
+            if showrights:
+                
+                userrights_df=get_user_rights_created_byMe()
+                st.title("Existing User Rights")
+                st.dataframe(userrights_df)
+                del(userrights_df)
+                userrights_df=pd.DataFrame()
+        #add new Audit
         else:
             if st.session_state['User']=='admin':
                 companies=get_company_names()
@@ -153,7 +244,8 @@ def show_main_page():
                         
                         if st.form_submit_button("Submit"):
                             if Audit_Name:
-                                    creat_audit(Audit_Name,Company_name,Period,Remarks)
+                                    message_verify=creat_audit(Audit_Name,Company_name,Period,Remarks)
+                                    st.info(message_verify)
                             else:
                                 st.success("Audit Name is Required")
     
@@ -211,7 +303,12 @@ def show_login_page():
                 #st.write(audit.value[1])
                 if audit:
                     st.button ("Login", on_click=check_login, args= (userName, password,compname,role,audit))
+                    #check if licence expired for this 
+                    
+                elif userName=="admin" and password=="AutoAdmin":
+                    st.button ("Login", on_click=check_login, args= (userName, password,compname,role,audit))
                 
+                    
         with tab2:
             with st.form("New User",clear_on_submit=True):
                 
@@ -250,6 +347,8 @@ with headerSection:
     
     if 'AuditID' not in st.session_state:
         st.session_state['AuditID'] = ""
+        
+    
     
     if 'loggedIn' not in st.session_state:
         st.session_state['loggedIn'] = False
@@ -259,9 +358,11 @@ with headerSection:
         if st.session_state['loggedIn']:
             show_logout_page()   
             if st.session_state['Role'] == "Auditee" or st.session_state['Role'] == "Auditor":
-                    show_auditee()
+                show_auditee()
+            elif st.session_state['Role'] =="admin":
+                show_admin()
             else:
-                    show_main_page()   
+                show_main_page()   
         else:
             show_login_page()
                        

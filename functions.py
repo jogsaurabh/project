@@ -2,6 +2,9 @@
 import sqlite3
 import pandas as pd
 import streamlit as st
+import os.path
+import pickle
+from datetime import date,timedelta
 from datetime import datetime
 import numpy as np
 
@@ -53,34 +56,65 @@ def get_audit_by_com(comp_name,audit):
 def check_login(username,password,comp_name,role,audit) :
     try:
         sqliteConnection = sqlite3.connect('autoaudit.db')
-        cursor = sqliteConnection.cursor()
-        cursor.execute(f"SELECT password from Users where user='{username}'")
-        passworddb=cursor.fetchone()
-        #print(passworddb[0])
-        cursor.close()
-        sqliteConnection.close()
-        #st.write(passworddb[0])
-        if passworddb:
-            if passworddb[0]==password:
+        if username!="admin":
+            #check if licence is not expired
+            if os.path.isfile('file.pkl'):
+                with open('file.pkl', 'rb') as file:
+                            # Call load method to deserialze
+                    exp_date = pickle.load(file) 
+                if exp_date < date.today():  
+                    st.error("Licenec has Expired...Please Contact to Renew the Licence...")     
+                    return False
+                    #gdruve="https://drive.google.com/file/d/18c0EASbKEC3vDXzVLJqzkeJj9mz0uPoe/view?usp=sharing"
+                else:  
+                    #sqliteConnection = sqlite3.connect(gdruve)
+                    cursor = sqliteConnection.cursor()
+                    cursor.execute(f"SELECT password from Users where user='{username}'")
+                    passworddb=cursor.fetchone()
+                    #print(passworddb[0])
+                    cursor.close()
+                    sqliteConnection.close()
+                    #st.write(passworddb[0])
+                    if passworddb:
+                        if passworddb[0]==password:
+                            st.session_state['loggedIn'] = True
+                            st.session_state['User']=username
+                            st.session_state['Company']=comp_name
+                            st.session_state['Role']=role
+                            st.session_state['Audit']=audit
+                            auditid=get_audit_by_com(comp_name,audit)
+                            audit_id=auditid['id'].values[0]
+                            st.session_state['AuditID']=audit_id
+                            
+                            return True
+                        else:
+                            st.session_state['loggedIn'] = False
+                            st.info("Invalid password")
+                            return False
+                    else:
+                        st.session_state['loggedIn'] = False
+                        st.info("Invalid user name ")
+                        return False
+            else:
+                st.error("Licence Invalid...")
+                return False
+        else:   
+            if password=="AutoAdmin":
+                #st.info("Admin")
                 st.session_state['loggedIn'] = True
-                st.session_state['User']=username
-                st.session_state['Company']=comp_name
-                st.session_state['Role']=role
-                st.session_state['Audit']=audit
-                auditid=get_audit_by_com(comp_name,audit)
-                audit_id=auditid['id'].values[0]
-                st.session_state['AuditID']=audit_id
-                #st.success(st.session_state['AuditID'])
+                st.session_state['User']="admin"
+                st.session_state['Company']=""
+                st.session_state['Role']="admin"
+                st.session_state['Audit']="audit"
+                st.session_state['AuditID']="0"
                 return True
             else:
-                st.session_state['loggedIn'] = False
                 st.info("Invalid password")
                 return False
-        else:
-            st.session_state['loggedIn'] = False
-            st.info("Invalid user name ")
-            return False
+
+                
             
+                
     except sqlite3.Error as error:
         if sqliteConnection:
             sqliteConnection.close()
@@ -106,8 +140,8 @@ def create_company(comp_name, com_address,com_email,com_mobile,com_person):
         cursor.execute(sqlite_insert_with_param, data_tuple)
         sqliteConnection.commit()
         cursor.close()
-        st.info("Company created...")
-        message_verify=("Manager Role assigned to Created compnay...")
+        #st.info("Company created...")
+        message_verify=("Company created...")
         cursor = sqliteConnection.cursor()
         #st.info("Done1")
         #add DS name in table
@@ -119,7 +153,7 @@ def create_company(comp_name, com_address,com_email,com_mobile,com_person):
         cursor.execute(sqlite_insert_with_param, data_tuple)
         sqliteConnection.commit()
         cursor.close()
-        
+        message_verify="Company Cretaed ..."
         
     except sqlite3.Error as error:
         message_verify=("Error while creating New Company", error)
@@ -169,12 +203,12 @@ def assign_user_rights(user,company_name,role):
         cursor.execute(sqlite_insert_with_param, data_tuple)
         sqliteConnection.commit()
         cursor.close()
-        st.info("User Rights Assigned...")
+        #st.info("User Rights Assigned...")
         message_verify=("User Rights Assigned...")
     except sqlite3.Error as error:
-        message_verify=("Error while creating New Company", error)
-        st.info(error)
-        st.info(company_name)
+        message_verify=("Error while Assigning Rights:- ", error)
+        #st.info(error)
+        #st.info(company_name)
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -185,7 +219,7 @@ def assign_user_rights(user,company_name,role):
 def create_dataset(df,table_name,comp_name,person_responsible):
     try:
         ds=table_name
-        currentime=datetime.now()
+        currentime=str(datetime.now())[:19]
         table_name= f"{comp_name}_{st.session_state['AuditID']}_{table_name}"
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
@@ -251,7 +285,8 @@ def add_verification_criteria (Criteria,DsName,comp_name,risk_weight,risk_catego
         cursor = sqliteConnection.cursor()
         #st.info("Done1")
         #add DS name in table
-        currentime=datetime.now()
+        
+        currentime=str(datetime.now())[:19]
         sqlite_insert_with_param = """INSERT INTO DSCriteria
                           (Verification_Criteria,DSName,Risk_Weight,Risk_Category,CompanyName,created_by,created_on,Audit_Name,Audit_id) 
                           VALUES (?,?,?,?,?,?,?,?,?);"""
@@ -345,6 +380,7 @@ def get_dataset_nonsampled(DSname):
         query=f"SELECT * from '{DSname}' where Sampled ='No'"
         sql_query=pd.read_sql_query(query,sqliteConnection)
         df = pd.DataFrame(sql_query)
+        
         cursor.close()
     except sqlite3.Error as error:
         df=("Error while creating Data Set Criteria", error)
@@ -405,7 +441,7 @@ def add_analytical_review (criteria,condition,cause,effect,DsName,comp_name,risk
                           (Criteria,Condition,Cause,Effect,DataSetName,CompanyName,Created_on,Risk_Weight,Risk_Category,created_by,Audit_Name,Audit_id,Review_File) 
                           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?);"""
         
-        currentime=datetime.now()
+        currentime=str(datetime.now())[:19]
         data_tuple = (criteria,condition,cause,effect,DsName,comp_name,currentime,risk_weight,risk_category,st.session_state['User'],st.session_state['Audit'],int(st.session_state['AuditID']),file_name)
         #st.info("Done2")
         
@@ -603,6 +639,25 @@ def get_company_names():
         
     return compnames
 
+def get_user_rights_created_byMe():
+    try:
+        sqliteConnection = sqlite3.connect('autoaudit.db')
+        cursor = sqliteConnection.cursor()
+        query=f"SELECT * from Users_Rights where user in (SELECT user from Users where is_active='Yes' and Created_by='{st.session_state['User']}')"
+        sql_query=pd.read_sql_query(query,sqliteConnection)
+        userrights = pd.DataFrame(sql_query)
+        cursor.close()
+    except sqlite3.Error as error:
+        userrights=("Error while getting user rights", error)
+        st.write(userrights)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
+            #message=("The SQLite connection is closed")
+        
+    return userrights
+
+
 def get_user_rights():
     try:
         sqliteConnection = sqlite3.connect('autoaudit.db')
@@ -745,7 +800,7 @@ def creat_audit(Audit_Name,Company_name, Period,Remarks):
         cursor = sqliteConnection.cursor()
         #st.info("Done1")
         #add DS name in table
-        currentime=datetime.now()
+        currentime=str(datetime.now())[:19]
         sqlite_insert_with_param = """INSERT INTO Audit
                           (Audit_Name,Company_name,Period,Remarks,Created_by,Created_on) 
                           VALUES (?,?,?,?,?,?);"""
@@ -754,10 +809,10 @@ def creat_audit(Audit_Name,Company_name, Period,Remarks):
         cursor.execute(sqlite_insert_with_param, data_tuple)
         sqliteConnection.commit()
         cursor.close()
-        st.info("Audit created...")
+        #st.info("Audit created...")
         message_verify=("Audit Created...")
     except sqlite3.Error as error:
-        message_verify=("Error while creating New Audit", error)
+        message_verify=("Error while creating New Audit- ", error)
         st.info(error)
         
     finally:
@@ -1252,7 +1307,7 @@ def get_company_docs(comp_name):
     try:
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
-        query=f"SELECT * from Company_File where Company='{comp_name}'"
+        query=f"SELECT id,Title,Document_Type,Remarks,File_Ref,created_by,created_on from Company_File where Company='{comp_name}'"
         sql_query=pd.read_sql_query(query,sqliteConnection)
         df = pd.DataFrame(sql_query)
         cursor.close()
@@ -1271,7 +1326,7 @@ def add_comp_doc(title,remarks,file_ref,doc_type,comp_name):
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
         
-        currentime=datetime.now()
+        currentime=str(datetime.now())[:19]
         sqlite_insert_with_param = """INSERT INTO Company_File
                           (Title,Remarks,File_Ref,Document_Type,Company,Created_by,Created_on) 
                           VALUES (?,?,?,?,?,?,?);"""
@@ -1354,7 +1409,7 @@ def get_audit_docs(auditid):
     try:
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
-        query=f"SELECT * from Audit_File where Audit_id='{auditid}'"
+        query=f"SELECT id,Title,Document_Type,Remarks,File_Ref,created_by,created_on from Audit_File where Audit_id='{auditid}'"
         sql_query=pd.read_sql_query(query,sqliteConnection)
         df = pd.DataFrame(sql_query)
         cursor.close()
@@ -1373,7 +1428,8 @@ def add_audit_doc(title,remarks,file_ref,doc_type,audit_id):
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
         
-        currentime=datetime.now()
+        currentime=str(datetime.now())[:19]
+        #currentime=str(currentime[:19])
         sqlite_insert_with_param = """INSERT INTO Audit_File
                           (Title,Remarks,File_Ref,Document_Type,Audit_id,Created_by,Created_on) 
                           VALUES (?,?,?,?,?,?,?);"""
@@ -1500,7 +1556,7 @@ def add_audit_cheklist(criteria,Audit_area,heading,risk_weight,risk_category,per
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
         
-        currentime=datetime.now()
+        currentime=str(datetime.now())[:19]
         sqlite_insert_with_param = """INSERT INTO Audit_Observations
                           (Criteria,Risk_Weight,Risk_Level,Audit_Area,Heading,Person_Responsible,created_by,created_on,audit_id) 
                           VALUES (?,?,?,?,?,?,?,?,?);"""
@@ -1597,15 +1653,15 @@ def modify_audit_observation(roid,Condition,Cause,Effect,Conclusion,Impact,Recom
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
         #update audit status
-        currentime=datetime.now()
+        currentime=str(datetime.now())[:19]
         if file_name==None:
             query=f"""UPDATE Audit_Observations  SET Condition='{Condition}',Cause ='{Cause}',Effect='{Effect}', 
-                Conclusion='{Conclusion}',Impact='{Impact}',Impact='{Recomendation}',Corrective_Action_Plan='{Corrective_Action_Plan}' 
+                Conclusion='{Conclusion}',Impact='{Impact}',Recomendation='{Recomendation}',Corrective_Action_Plan='{Corrective_Action_Plan}' 
                 ,Is_Adverse_Remark='{Is_Adverse_Remark}',DeadLine='{DeadLine}',Observation_by='{st.session_state['User']}', 
                 Observation_on='{currentime}' WHERE id={roid} """
         else:
             query=f"""UPDATE Audit_Observations  SET Condition='{Condition}',Cause ='{Cause}', Effect='{Effect}' , 
-                Conclusion='{Conclusion}',Impact='{Impact}',Impact='{Recomendation}',Corrective_Action_Plan='{Corrective_Action_Plan}' 
+                Conclusion='{Conclusion}',Impact='{Impact}',Recomendation='{Recomendation}',Corrective_Action_Plan='{Corrective_Action_Plan}' 
                 ,Is_Adverse_Remark='{Is_Adverse_Remark}',DeadLine='{DeadLine}',Observation_by='{st.session_state['User']}',
                 Observation_on='{currentime}',Annexure='{file_name}' WHERE id={roid} """
         
@@ -1628,7 +1684,7 @@ def get_Audit_summ(auditid):
     try:
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
-        query=f"""SELECT * from Audit_Summary where Audit_id={auditid}"""
+        query=f"""SELECT id,Observation,Risk_Weight,Risk_Level,Impact,Area,Need_for_Management_Intervention,created_by,created_on,Audit_id from Audit_Summary where Audit_id={auditid}"""
         sql_query=pd.read_sql_query(query,sqliteConnection)
         df = pd.DataFrame(sql_query)
         cursor.close()
@@ -1648,7 +1704,7 @@ def add_audit_summ(auditid,Observation,risk_weight,risk_category,Impact,
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
         
-        currentime=datetime.now()
+        currentime=str(datetime.now())[:19]
         sqlite_insert_with_param = """INSERT INTO Audit_Summary
                           (Observation,Risk_Weight,Risk_Level,Impact,Area,Need_for_Management_Intervention,Audit_id,Created_by,Created_on) 
                           VALUES (?,?,?,?,?,?,?,?,?);"""
@@ -2011,7 +2067,7 @@ def get_obs_related_vv(obr_id):
         #auditid=int(st.session_state['AuditID'])
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
-        query=f"SELECT DataSetName,Criteria,Condition,Cause,Effect,reply,status_update_remarks FROM queries_risk WHERE risk_id in (SELECT risk_id from linking_vv WHERE obs_id={obr_id})"
+        query=f"SELECT DataSetName,Criteria,Condition,Cause,Effect,reply,status_update_remarks,Risk_Weight FROM queries_risk WHERE risk_id in (SELECT risk_id from linking_vv WHERE obs_id={obr_id})"
         sql_query=pd.read_sql_query(query,sqliteConnection)
         df = pd.DataFrame(sql_query)
         cursor.close()
@@ -2133,7 +2189,7 @@ def get_obs_related_ar(obr_id):
         #auditid=int(st.session_state['AuditID'])
         sqliteConnection = sqlite3.connect('autoaudit.db')
         cursor = sqliteConnection.cursor()
-        query=f"SELECT DataSetName,Criteria,Condition,Cause,Effect,reply,status_update_remarks FROM Audit_AR WHERE Id in (SELECT ar_id from linking_ar WHERE obs_id={obr_id})"
+        query=f"SELECT DataSetName,Criteria,Condition,Cause,Effect,reply,status_update_remarks,Risk_Weight FROM Audit_AR WHERE Id in (SELECT ar_id from linking_ar WHERE obs_id={obr_id})"
         sql_query=pd.read_sql_query(query,sqliteConnection)
         df = pd.DataFrame(sql_query)
         cursor.close()
@@ -2173,7 +2229,7 @@ def delete_sampling(dsfilename,del_links):
         cursor = sqliteConnection.cursor()
         listvalues=','.join([str(i) for i in del_links])
         #currentime=datetime.now()
-        sqlite_insert_with_param = f"update {dsfilename} SET Sampled='No' WHERE `index` in ({listvalues})"
+        sqlite_insert_with_param = f"update '{dsfilename}' SET Sampled='No' WHERE `index` in ({listvalues})"
         #st.write(sqlite_insert_with_param)
         #data_tuple = (title,remarks,file_ref,doc_type,comp_name,st.session_state['User'],currentime)
         #st.info("Done2")
@@ -2199,7 +2255,7 @@ def add_sampling(dsfilename,del_links):
         cursor = sqliteConnection.cursor()
         listvalues=','.join([str(i) for i in del_links])
         #currentime=datetime.now()
-        sqlite_insert_with_param = f"update {dsfilename} SET Sampled='Yes' WHERE `index` in ({listvalues})"
+        sqlite_insert_with_param = f"update '{dsfilename}' SET Sampled='Yes' WHERE `index` in ({listvalues})"
         #st.write(sqlite_insert_with_param)
         #data_tuple = (title,remarks,file_ref,doc_type,comp_name,st.session_state['User'],currentime)
         #st.info("Done2")
@@ -2209,7 +2265,7 @@ def add_sampling(dsfilename,del_links):
         #st.info("Record Deleted...")
         message_verify=("Records add for Sampling...")
     except sqlite3.Error as error:
-        message_verify=("Error while Deleting", error)
+        message_verify=("Error while Adding Samples", error)
         st.info(error)
         #st.info(comp_name)
     finally:

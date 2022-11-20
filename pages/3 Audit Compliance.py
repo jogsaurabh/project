@@ -82,7 +82,7 @@ def show_update_audit_status():
                                 close=st.selectbox("Close / Pending",["Closed","Pending"],key="cq")
                             submit=st.button("Submit",key="submitquery")
                             if submit:
-                                    currentime=datetime.now()
+                                    currentime=str(datetime.now())[:19]
                                     id=int(selected[0]['Id'])
                                     #currentremark=selected[0]['status_update_remarks']
                                     if currentremark is None:
@@ -144,7 +144,7 @@ def show_update_audit_status():
                                         close=st.selectbox("Close / Pending",["Closed","Pending"],key="cq2")
                                     submit=st.button("Submit",key="submitquery2")
                                     if submit:
-                                            currentime=datetime.now()
+                                            currentime=str(datetime.now())[:19]
                                             id=int(selected[0]['Id'])
                                             #currentremark=selected[0]['status_update_remarks']
                                             if currentremark is None:
@@ -200,7 +200,7 @@ def show_update_audit_status():
                             if not reply:
                                 st.warning("Comments can not be Blank")
                             else:
-                                currentime=datetime.now()
+                                currentime=str(datetime.now())[:19]
                                 id=int(selected[0]['id'])
                                 currentremark=selected[0]['Compliance_Remarks']
                                 if currentremark is None:
@@ -351,7 +351,7 @@ def show_auditee():
                             if not reply:
                                 st.warning("Reply can not be Blank")
                             else:
-                                currentime=datetime.now()
+                                currentime=str(datetime.now())[:19]
                                 id=int(selected[0]['Id'])
                                 currentremark=selected[0]['Reply']
                                 if currentremark is None:
@@ -408,7 +408,7 @@ def show_auditee():
                             if not reply:
                                 st.warning("Reply can not be Blank")
                             else:
-                                currentime=datetime.now()
+                                currentime=str(datetime.now())[:19]
                                 id=int(selected[0]['Id'])
                                 #currentremark=selected[0]['reply']
                                 if currentremark is None:
@@ -461,7 +461,7 @@ def show_auditee():
                             if not reply:
                                 st.warning("Comments can not be Blank")
                             else:
-                                currentime=datetime.now()
+                                currentime=str(datetime.now())[:19]
                                 id=int(selected[0]['id'])
                                 currentremark=selected[0]['Action_Remarks']
                                 if currentremark is None:
@@ -515,7 +515,7 @@ def show_auditee():
                             if not reply:
                                 st.warning("Comments can not be Blank")
                             else:
-                                currentime=datetime.now()
+                                currentime=str(datetime.now())[:19]
                                 id=int(selected[0]['id'])
                                 currentremark=selected[0]['Management_Comments']
                                 if currentremark is None:

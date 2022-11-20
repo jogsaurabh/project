@@ -43,6 +43,7 @@ def show_Audit_observations():
         crud=st.radio("",('Show Observations','Update Audit Observations'),horizontal=True,key='strcrudas')
         auditid=int(st.session_state['AuditID'])
         df=get_audit_observations(auditid)
+        df.sort_values(by=['Audit_Area','Heading'],inplace=True)
         if crud=='Update Audit Observations':
             st.success('Update Audit Observations...')
             #auditid=int(st.session_state['AuditID'])
@@ -74,13 +75,24 @@ def show_Audit_observations():
                     col1,col2 = st.columns(2)
                     
                     with col2:
-                        st.subheader('Queries')
+                        st.subheader('Related Queries')
                         vvqueries=get_obs_related_vv(selected[0]['id'])
-                        st.dataframe(vvqueries)
+                        vvqueries.sort_values("DataSetName",inplace=True)
+                        builder = GridOptionsBuilder.from_dataframe(vvqueries)
+                        builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=10)
+                        go = builder.build()
+                        AgGrid(vvqueries, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED),key="Query1")
+            
+                        #st.dataframe(vvqueries)
                     with col1:
                         st.subheader('Summary')
                         vvsummary=get_obs_related_vv_summary(selected[0]['id'])
-                        st.dataframe(vvsummary)
+                        #st.dataframe(vvsummary)
+                        builder = GridOptionsBuilder.from_dataframe(vvsummary)
+                        builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=10)
+                        go = builder.build()
+                        AgGrid(vvsummary, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED),key="sum1")
+            
                 with st.expander('See Related Analytical Review & Other Remarks'):
                     st.info('Analytical Review & Other Remarks')
                     col1,col2 = st.columns(2)
@@ -88,25 +100,47 @@ def show_Audit_observations():
                     with col2:
                         st.subheader('Queries')
                         vvqueries=get_obs_related_ar(selected[0]['id'])
-                        st.dataframe(vvqueries)
+                        vvqueries.sort_values("DataSetName",inplace=True)
+                        #st.dataframe(vvqueries)
+                        builder = GridOptionsBuilder.from_dataframe(vvqueries)
+                        builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=10)
+                        go = builder.build()
+                        AgGrid(vvqueries, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED),key="query2")
+            
                     with col1:
                         st.subheader('Summary')
                         vvsummary=get_obs_related_ar_summary(selected[0]['id'])
-                        st.dataframe(vvsummary)
+                        #st.dataframe(vvsummary)
+                        builder = GridOptionsBuilder.from_dataframe(vvsummary)
+                        builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=10)
+                        go = builder.build()
+                        AgGrid(vvsummary, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED),key="sum2")
+            
                         
-                         
+                st.markdown("""---""")    
                 with st.expander('Update Observations...'): 
                     with st.form("Modify Observation Doc",clear_on_submit=True):
-                        
-                        Condition=st.text_area("Update Condition",key='condition')
-                        Cause=st.text_area("Update Cause",key='Cause')
-                        Effect=st.text_area("Update Effect",key='Effect')
-                        
-                        Conclusion=st.text_area("Update Conclusion",key='Conclusion1')
-                        
-                        Impact=st.text_area("Update Impact",key='Impact')
-                        Recomendation=st.text_area("Update Recomendation",key='Recomendation')
-                        Corrective_Action_Plan=st.text_area("Update Corrective_Action_Plan",key='Corrective_Action_Plan')
+                        cond=""
+                        if selected[0]['Condition']!=None: cond = selected[0]['Condition']
+                        Condition=st.text_area("Update Condition",key='condition',value=cond)
+                        cause_v=""
+                        if selected[0]['Cause']!=None: cause_v = selected[0]['Cause']
+                        Cause=st.text_area("Update Cause",key='Cause',value=cause_v)
+                        effect_v=""
+                        if selected[0]['Effect']!=None: effect_v = selected[0]['Effect']
+                        Effect=st.text_area("Update Effect",key='Effect',value=effect_v)
+                        conclusion_v=""
+                        if selected[0]['Conclusion']!=None: conclusion_v = selected[0]['Conclusion']
+                        Conclusion=st.text_area("Update Conclusion",key='Conclusion1',value=conclusion_v)
+                        impact_v=""
+                        if selected[0]['Impact']!=None: impact_v = selected[0]['Impact']
+                        Impact=st.text_area("Update Impact",key='Impact',value=impact_v)
+                        reconmendation_v=""
+                        if selected[0]['Recomendation']!=None: reconmendation_v = selected[0]['Recomendation']
+                        Recomendation=st.text_area("Update Recomendation",key='Recomendation',value=reconmendation_v)
+                        cor_act_pln_v=""
+                        if selected[0]['Corrective_Action_Plan']!=None: cor_act_pln_v = selected[0]['Corrective_Action_Plan']
+                        Corrective_Action_Plan=st.text_area("Update Corrective_Action_Plan",key='Corrective_Action_Plan',value=cor_act_pln_v)
                         Is_Adverse_Remark=st.selectbox("Update Is_Adverse_Remark",key='isactive',options=("Yes","No"))
                         #Is_Adverse_Remark=st.text_input("Update Is_Adverse_Remark",key='Is_Adverse_Remark',value=selected[0]['Is_Adverse_Remark'])
                         DeadLine=st.date_input('Update DeadLine',key='DeadLine')
@@ -171,8 +205,22 @@ def show_Audit_observations():
                             #uses the gridOptions dictionary to configure AgGrid behavior.
             st.success(f"""Use Options to Group Report by Mutiple Levels.
                        Right Click to Export Report to Excel""")
-            grid_response=AgGrid(df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
-            
+            grid_response=AgGrid(df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED),key="sum3")
+            selected = grid_response['selected_rows']
+                        #download file option
+            if selected:
+                            filename=selected[0]['Annexure']
+                            com_filename=f"{(st.session_state['AuditID'])}_{filename}"
+                            #com_filename=f"{st.session_state['Company']}_{filename}"
+                                   
+                            if filename:
+                                        
+                                with open(os.path.join("obsev_docs",com_filename), 'rb') as f:
+                                    st.download_button('Download Attachment', f, file_name=filename,key="dlcompfile")    
+                    
+        
+        del[df]
+        df=pd.DataFrame()
         
         
             
@@ -313,17 +361,25 @@ def show_audit():
             if docs_ops=="-----":
                 st.info("Select type of Audit File...")
             elif docs_ops=="Company Audit File":
-                #st.markdown("""---""")
+                
                 #st. success(docs_ops)
+                with st.expander("Sample Documents ..."):
+                    doc=st.selectbox("Select",('Proposal for Internal Audit Services','Engagement Letter','Organization Background','Industry Research'),key='docsample')
+                    if doc:
+                            com_filename=f"{doc}.docx"
+                            with open(os.path.join("samples",com_filename), 'rb') as f:
+                                st.download_button('Download Sample File', f, file_name=com_filename,key="sampledownload")    
+                st.markdown("""---""")
                 crud=st.radio("",('View','Add New','Modify','Delete'),horizontal=True,key='strcrud')
                 df=get_company_docs(st.session_state['Company'])
                 builder = GridOptionsBuilder.from_dataframe(df)
                 builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=10)
                 builder.configure_selection(selection_mode="single",use_checkbox=True)
                         #builder.configure_default_column(editable=True)
+                
                 go = builder.build()
                         #uses the gridOptions dictionary to configure AgGrid behavior.
-                grid_response=AgGrid(df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                grid_response=AgGrid(df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED),key="sum5")
                         #selelcted row to show in audit AGGrid
                 selected = grid_response['selected_rows']
                 #st.dataframe(selected)
@@ -331,7 +387,7 @@ def show_audit():
                 if crud=='Add New':
                     st.success('Enter details to Add New Record')
                     with st.form("Add Comp docs",clear_on_submit=True):
-                        dtitle=st.text_input("Enter Title",key='dtitle')
+                        dtitle=st.text_input("Enter Title (Title should not be Duplicate)",key='dtitle')
                         dremarks=st.text_input("Enter Remarks",key='dremarks')
                         c1,c2 =st.columns(2)
                         with c1:
@@ -361,17 +417,18 @@ def show_audit():
                                             st.info("Enter File Name")    
                                 else:
                                     file_name=None
+                                    st.error("Upload File...")
                                         #reviws_table.add_row({"Criteria":"criteria","Condition":"condition","Cause":"cause","Effect":"effect"})
-                                    Reveiew=add_comp_doc(dtitle,dremarks,file_name,ddoctype,st.session_state['Company'])                                        
+                                    #Reveiew=add_comp_doc(dtitle,dremarks,file_name,ddoctype,st.session_state['Company'])                                        
                             else:
-                                st.info("Please Enter -Title. It is Mandatory field")
+                                st.error("Please Enter -Title. It is Mandatory field")
 
                            
                 elif crud=='Modify':
                     if selected:
                         st.success('Enter details to Modify Selected Record')
                         with st.form("Mdify Comp Doc",clear_on_submit=True):
-                            dtitle=st.text_input("Enter New Title",key='dtitlem',value=selected[0]['Title'])
+                            dtitle=st.text_input("Enter New Title (Title should not be Duplicate)",key='dtitlem',value=selected[0]['Title'])
                             dremarks=st.text_input("Enter New Remarsk",key='dremarksm',value=selected[0]['Remarks'])
                             roid=selected[0]['id']
                             c1,c2 =st.columns(2)
@@ -443,9 +500,26 @@ def show_audit():
                     else:
                         st.info('Select a Record to Delete ....')
 
-                  
+                del[df]
+                df=pd.DataFrame()
+                
             else:
-                st. success(docs_ops)
+                
+                #st. success(docs_ops)
+                with st.expander("Sample Documents ..."):
+                    doc=st.selectbox("Select",('Scope and Objective Statement','Overall Planning','Risk Analysis',
+                                               'Opening Meeting Control Statement','General Process Understanding','Data Needs Identification and Collection',
+                                               'Data Analysis and Summaries Preparation','Previous Audit Report Analysis',
+                                               'Brain Storming Sessions','Selection of Samples','Walk Through Tracking',
+                                               'Documentation of Walk Through','Planning and Execution of Audit Programme',
+                                               'Quality Checklist of Evidence Collection','Final Report Release Checklist',
+                                               'Overall Closure Checklist','Agenda for the Meeting',
+                                               'Minutes of Meeting'),key='docsample1')
+                    if doc:
+                            com_filename=f"{doc}.docx"
+                            with open(os.path.join("samples",com_filename), 'rb') as f:
+                                st.download_button('Download Sample File', f, file_name=com_filename,key="sampledownloadwp")    
+                st.markdown("""---""")
                 auditid=int(st.session_state['AuditID'])
                 crud=st.radio("",('View','Add New','Modify','Delete'),horizontal=True,key='strcruda')
                 df=get_audit_docs(st.session_state['AuditID'])
@@ -464,7 +538,7 @@ def show_audit():
                     st.success('Enter details to Add New Record')
                     #st.write(st.session_state['AuditID'])
                     with st.form("Add Audit docs",clear_on_submit=True):
-                        dtitle=st.text_input("Enter Title",key='dtitlea')
+                        dtitle=st.text_input("Enter Title (Title should not be Duplicate)",key='dtitlea')
                         dremarks=st.text_input("Enter Remarks",key='dremarksa')
                         c1,c2 =st.columns(2)
                         with c1:
@@ -496,17 +570,18 @@ def show_audit():
                                             st.info("Enter File Name")    
                                 else:
                                     file_name=None
+                                    st.error("Upload File...") 
                                         #reviws_table.add_row({"Criteria":"criteria","Condition":"condition","Cause":"cause","Effect":"effect"})
-                                    Reveiew=add_audit_doc(dtitle,dremarks,file_name,ddoctype,auditid)                                        
+                                    #Reveiew=add_audit_doc(dtitle,dremarks,file_name,ddoctype,auditid)                                        
                             else:
-                                st.info("Please Enter -Title. It is Mandatory field")
+                                st.error("Please Enter -Title. It is Mandatory field")
 
                            
                 elif crud=='Modify':
                     if selected:
                         st.success('Enter details to Modify Selected Record')
-                        with st.form("Mdify Audit Doc",clear_on_submit=True):
-                            dtitle=st.text_input("Enter New Title",key='dtitlema',value=selected[0]['Title'])
+                        with st.form("Modify Audit Doc",clear_on_submit=True):
+                            dtitle=st.text_input("Enter New Title (Title should not be Duplicate)",key='dtitlema',value=selected[0]['Title'])
                             dremarks=st.text_input("Enter New Remarsk",key='dremarksma',value=selected[0]['Remarks'])
                             roid=selected[0]['id']
                             c1,c2 =st.columns(2)
@@ -580,6 +655,8 @@ def show_audit():
                     else:
                         st.info('Select a Record to Delete ....')
 
+                del[df]
+                df=pd.DataFrame()
                 
                 
         elif sel_option=='Audit Observations':
@@ -605,27 +682,29 @@ def show_audit():
                 st.dataframe(pending_qs)
                 
         else:
-                #do V&V
+            #do V&V
             optionsdf=get_dsname(int(st.session_state['AuditID']))
             #add blank row at begining of list
             optionsdf.loc[-1]=['---']
             optionsdf.index=optionsdf.index+1
-            optionsdf.sort_index(inplace=True)
+            optionsdf.sort_index(inplace=True)  
             d_sname=st.selectbox("Select Data Set to Audit",optionsdf,key="selectdsname")
             ds_name=f"{st.session_state['Company']}_{(st.session_state['AuditID'])}_{d_sname}"
             #select dataset 
         
-                
+               
             if d_sname=="---":
                 st.info("Select Data Set to Audit")
             else:
                 
                 df=get_dataset(ds_name)
                 df.drop(['Status', 'Sampled'], axis=1,inplace=True)
-                tab1,tab2 =st.tabs(["   Vouching & Verification  ","   Analytical & Other Reviews   "])
+                
+                tab1,tab2 =st.tabs(["   Vouching & Verification  ","   Analytical Review & Other Reviews   "])
                 with tab1:
                     st.header(d_sname)
-                    st.success("Select Row to Audit")
+                    st.success("Select a Row to Audit")
+                    
                     #st.dataframe(df)
                         #builds a gridOptions dictionary using a GridOptionsBuilder instance.
                     builder = GridOptionsBuilder.from_dataframe(df)
@@ -634,6 +713,7 @@ def show_audit():
                         #builder.configure_default_column(editable=True)
                     go = builder.build()
                         #uses the gridOptions dictionary to configure AgGrid behavior.
+                    #st.info("aggrid is jow")
                     grid_response=AgGrid(df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
                         #selelcted row to show in audit AGGrid
                     selected = grid_response['selected_rows']
@@ -673,7 +753,7 @@ def show_audit():
                                 go_audit = builder_Audit.build()
                                 st.success("Vouching...If values are wrong...Double click to enter correct value.")
                                 #audited=AgGrid(selected_df, gridOptions=go_audit,update_mode= GridUpdateMode.VALUE_CHANGED,height = 80)
-                                audited=AgGrid(selected_df, gridOptions=go_audit,update_mode=(GridUpdateMode.VALUE_CHANGED|GridUpdateMode.SELECTION_CHANGED))
+                                audited=AgGrid(selected_df, gridOptions=go_audit,update_mode=(GridUpdateMode.VALUE_CHANGED|GridUpdateMode.SELECTION_CHANGED),key="sum8")
                                 #st.write(veri
                                 audited_data=audited['data']
                                 #df_audited_data=pd.DataFrame(audited_data)
@@ -681,7 +761,7 @@ def show_audit():
                                 #st.dataframe(df_audited_data)
                                 #st.write(audited_data)
                             with colum2:
-                                currentime=datetime.now()
+                                currentime=str(datetime.now())[:19]
                                 #Verification
                                 st.success("Check Verification if Criteria is met, else keep Unchecked.")
                                 df_verif=get_verification(d_sname,int(st.session_state['AuditID']))
@@ -693,7 +773,7 @@ def show_audit():
                                 builder_verif.configure_selection(selection_mode="multiple",use_checkbox=True)
                                 builder_verif.configure_columns((['Cause','Effect']),editable=True)
                                 go_verif=builder_verif.build()
-                                verif=AgGrid(df_verif, gridOptions=go_verif,update_mode=(GridUpdateMode.VALUE_CHANGED|GridUpdateMode.SELECTION_CHANGED))
+                                verif=AgGrid(df_verif, gridOptions=go_verif,update_mode=(GridUpdateMode.VALUE_CHANGED|GridUpdateMode.SELECTION_CHANGED),key="sum9")
                                 #st.write(verif)
                                 all_verif=verif["data"]
                                 df_all_verif=pd.DataFrame(all_verif)
@@ -788,8 +868,9 @@ def show_audit():
                                         selected_df=pd.DataFrame()
                                         df_verif=pd.DataFrame()
                                     #auditnext()
-                        
-                            
+                
+                
+                           
 
                 with tab2:
                     st.header(d_sname)
@@ -875,7 +956,7 @@ def show_audit():
                         go = builder.build()
                                     #uses the gridOptions dictionary to configure AgGrid behavior.
                         #grid_response=AgGrid(pending, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED),theme="blue")
-                        grid_response=AgGrid(Reveiew, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                        grid_response=AgGrid(Reveiew, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED),key="sum10")
                         selected = grid_response['selected_rows']
                         #download file option
                         if selected:
@@ -891,7 +972,7 @@ def show_audit():
                         #reviws_table=st.table(Reveiew)
                     st.markdown("""---""")   
                     st.info("Analyse Data")
-                    ds=get_entire_dataset(ds_name)
+                    #ds=get_entire_dataset(ds_name)
                     ds=get_entire_dataset(ds_name)
                     with st.expander("View Statistical Summary"):
                         st.success(f"Stats Summary for {d_sname}")
@@ -902,7 +983,7 @@ def show_audit():
                         builder = GridOptionsBuilder.from_dataframe(ds)
                         builder.configure_pagination(enabled=True,paginationPageSize=15,paginationAutoPageSize=False)
                         go = builder.build()
-                        AgGrid(ds,gridOptions=go)
+                        AgGrid(ds,gridOptions=go,key="sum11")
                         csv=ds.to_csv().encode('utf-8')
                         st.download_button("Download csv file...",csv,f"{d_sname}.csv")
                 
@@ -919,7 +1000,10 @@ def show_audit():
                                 pr = df.profile_report()
                                 st_profile_report(pr)
                     
-        
+                del[[df,ds]]        
+                df=pd.DataFrame()
+                ds=pd.DataFrame()
+            
 headerSection = st.container()
 mainSection = st.container()
 loginSection = st.container()

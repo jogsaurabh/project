@@ -148,7 +148,7 @@ def show_report():
                             builder.configure_default_column(groupable=True)
                             go = builder.build()
                                     #uses the gridOptions dictionary to configure AgGrid behavior.
-                            AgGrid(queries_df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                            AgGrid(queries_df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED),key="sum15")
                                                                                             #'Risk_Category'])
                             #csv=queries_df.to_csv().encode('utf-8')
                             #st.download_button("Download csv file",csv,f"{ds}.csv")
@@ -327,7 +327,7 @@ def show_report():
                     builder.configure_default_column(groupable=True)
                     go = builder.build()
                                             #uses the gridOptions dictionary to configure AgGrid behavior.
-                    AgGrid(df_allObservations, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                    AgGrid(df_allObservations, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED),key="sum14")
             else:
                 st.success(" No Observations...")                                            
                 

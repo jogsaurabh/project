@@ -27,8 +27,61 @@ headerSection = st.container()
 loginSection = st.container()
 logOutSection = st.container()
 
+    
+def show_login_page():
+    with loginSection:
+        tab1,tab2 =st.tabs(["   Existing Users  ","   Change Password   "])
+        with tab1:
+            
+            if st.session_state['loggedIn'] == False:
+                #st.session_state['username'] = ''
+                st.title("Login") 
+                userName = st.text_input (label="", value="", placeholder="Enter your user name",key="k1")
+                password = st.text_input (label="", value="",placeholder="Enter password", type="password",key="k2")
+                #get Companies for user
+                rights=get_user_rights()
+                mask = rights['user'] == userName
+                comp_name= rights[mask]
+                #comp_name=comp_name['company_name']
+                compname=st.selectbox("Select Company",comp_name['company_name'])
+                mask1=comp_name['company_name']==compname
+                roleds=comp_name[mask1]
+                if roleds.size !=0:
+                    role=roleds['role'].values[0]
+                else:
+                    role=""
+                #st.write(compname)
+                #st.write(comp_name['company_name'])
+                #get Audit for company
+                audits=get_audit(compname)
+                audit=st.selectbox("Select Audit Name",audits,key="auit_name")
+                if audit:
+                    st.button ("Login", on_click=check_login, args= (userName, password,compname,role,audit))
+                
+        with tab2:
+            with st.form("New User",clear_on_submit=True):
+                
+                st.title("Change Password")
+                userid = st.text_input (label="", value="", placeholder="Enter your user ID",key="k5")
+                password = st.text_input (label="", value="",placeholder="Enter Current Password", type="password",key="k6")
+                new_pass = st.text_input (label="", value="", placeholder="Enter New Password", type="password",key="k3")
+                renew_pass = st.text_input (label="", value="", placeholder="ReEnter New Password", type="password",key="k4")
+                submit_user =st.form_submit_button("Submit")
+                if submit_user:
+                    if new_pass == renew_pass:
+                        #createuser=create_user(displayname,userid,password,designation)
+                        newpass=update_password(userid,password,new_pass)
+                        st.info(newpass)
+                    else:
+                        st.info('New Password and ReEntered Password not matching...')
+                #st.button ("Register", on_click=Register_Clicked, args= (userid, password,designation,displayname))
+
+
 def show_masters():
     comp_name=st.session_state['Company']
+    #st.write(f"Audit ID:-{st.session_state['AuditID']}")
+    #st.write(st.session_state['Audit'])
+    #st.write(st.session_state['AuditID'])
     auditid=int(st.session_state['AuditID'])
     ds_names=get_dsname(int(st.session_state['AuditID']))
     ds_names.loc[-1]=['---']
@@ -42,7 +95,7 @@ def show_masters():
         with st.sidebar.markdown("# Masters "):
             master_options = st.radio(
             'Masters- Dataset',
-            ('Add New Data Set', 'Add Records to Data Set','Sampling Data Set','Set Audit Check List','Verification Check List','Set Risk Weights for Data Set','Link Observation with Criterias','Compare with Audited Dataset'))            
+            ('Set Audit Check List','Add New Data Set', 'Add Records to Data Set','Sampling Data Set','Verification Check List','Set Risk Weights for Data Set','Link Observation with Criterias','Compare with Audited Dataset'))            
         if master_options=='Add New Data Set':
             
             st.header("Add New Data Set")
@@ -190,7 +243,7 @@ def show_masters():
                                         message=add_datato_ds(dataframe,ds_name,comp_name)
                                         st.success(message)
                                 else:
-                                    st.warning("Mismatch in Colums of two Datasets...please upload Data set with same structure.")
+                                    st.warning("Mismatch in Colums of two Datasets...Please upload Data set with same structure.")
                                 #del & clear DataFrame
                                 del [[dataframe,df]]
                                 dataframe=pd.DataFrame()
@@ -260,11 +313,11 @@ def show_masters():
                     else:
                         st.subheader('Add Random Rows to Sample Data')
                         col1,col2=st.columns(2)
-                        with col1:
+                        with col2:
                             df_unsampled=get_dataset_nonsampled(ds_file_name)
                             st.success(f'Total Rows Not yet Sampled - {len(df_unsampled)}')
                             st.dataframe(df_unsampled)
-                        with col2:   
+                        with col1:   
                             if len(df_unsampled)>0:
                                 st.success('Select Method')
                                 
@@ -289,11 +342,11 @@ def show_masters():
                                     addsam=st.button("Add Above to Sample",key='samp')
                                     if addsam:
                                         
-                                        st.write(rows)
+                                        #st.write(rows)
                                         added=add_sampling(ds_file_name,rows)
                                         st.info(added)  
                                 
-                                
+                 
                         
                 with st.expander("Remove Sampling"):
                     st.info("Select Rows to Remove from Sample Data")
@@ -330,8 +383,9 @@ def show_masters():
                                     #df_linked.drop(['id'],axis=1,inplace=True)
                                     st.dataframe(df_unsampled) 
                         
-                    
-                    
+                #del[[df_unsampled,df_sampled]]
+                #df_sampled=pd.DataFrame()
+                #df_unsampled=pd.DataFrame()
                     
                     
         elif master_options=='Verification Check List':
@@ -382,6 +436,7 @@ def show_masters():
             auditid=int(st.session_state['AuditID'])
             crud=st.radio("",('View','Add New','Modify','Delete'),horizontal=True,key='strcrudas')
             df=get_audit_checklist(auditid)
+            df.sort_values(by=['Audit_Area','Heading'],inplace=True)
             builder = GridOptionsBuilder.from_dataframe(df)
             builder.configure_pagination(enabled=True,paginationAutoPageSize=False,paginationPageSize=15)
             builder.configure_selection(selection_mode="single",use_checkbox=True)
@@ -393,7 +448,7 @@ def show_masters():
             selected = grid_response['selected_rows']
                 #st.data
             if crud=='Add New':
-                st.success('Enter details to Add New Record')
+                st.success('Import Default Check List OR Enter details to Add New Records')
                 auditee=get_auditee_comp()
                 if auditee.empty:
                     st.info(f"No Auditee assigned to Current Company...\n Assign Atleast 1 user with Auditee Role")
@@ -402,6 +457,11 @@ def show_masters():
                     add_options= st.radio("",('Import Default Check List', 'Add Check List'),horizontal=True,key='op1')
                     if add_options=='Import Default Check List':
                         #imp=st.button('View Default Check List',key='defchkli')
+                        showchecklist=st.button("View Default Check List...",key="viedefatchk")
+                        if showchecklist:
+                            df=pd.read_excel('checklist.xlsx')
+                            st.dataframe(df)
+                        st.success("Do You Want to Import Default Check List...")
                         person_responsible=st.selectbox("Select Defalut Person Responsible...You can Modify Later.",auditee,key="sbperson_responsibleck1i")
                         impbt=st.button("Import",key='impchklist')
                         if impbt:
@@ -613,7 +673,7 @@ def show_masters():
                                 #builder.configure_default_column(editable=True)
                     go = builder.build()
                                 #uses the gridOptions dictionary to configure AgGrid behavior.
-                    grid_response=AgGrid(df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                    grid_response=AgGrid(df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED),key="sum31")
                                 #selelcted row to show in audit AGGrid
                     selected = grid_response['selected_rows']
                     if selected:
@@ -630,7 +690,7 @@ def show_masters():
                                 #builder.configure_default_column(editable=True)
                                 go = builder.build()
                                 #uses the gridOptions dictionary to configure AgGrid behavior.
-                                grid_response=AgGrid(df_unlined, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                                grid_response=AgGrid(df_unlined, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED),key="sum32")
                                 #selelcted row to show in audit AGGrid
                                 add_links = grid_response['selected_rows']
                                                     
@@ -668,7 +728,7 @@ def show_masters():
                                 #builder.configure_default_column(editable=True)
                     go = builder.build()
                                 #uses the gridOptions dictionary to configure AgGrid behavior.
-                    grid_response=AgGrid(df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                    grid_response=AgGrid(df, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED),key="sum33")
                                 #selelcted row to show in audit AGGrid
                     selected = grid_response['selected_rows']
                     
@@ -685,7 +745,7 @@ def show_masters():
                                 #builder.configure_default_column(editable=True)
                         go = builder.build()
                                 #uses the gridOptions dictionary to configure AgGrid behavior.
-                        grid_response=AgGrid(df_linked, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED))
+                        grid_response=AgGrid(df_linked, gridOptions=go,update_mode= (GridUpdateMode.SELECTION_CHANGED|GridUpdateMode.MODEL_CHANGED),key="sum34")
                                 #selelcted row to show in audit AGGrid
                         del_links = grid_response['selected_rows']                            
                         dellinkb=st.button("Delete Selected Link >>",key='delinkbard')
@@ -810,9 +870,17 @@ def show_masters():
                             st.dataframe(df_final.reset_index(drop=True).style.apply(highlight_diff, axis=None))
                             csv=df_final.to_csv().encode('utf-8')
                             st.download_button("Download csv file",csv,f"com_{ds_name}.csv")
+                            del[[df_final,df_all,df,dataframe_new]]
+                            df_final=pd.DataFrame()
+                            df_all=pd.DataFrame()
+                            df=pd.DataFrame()
+                            dataframe_new=pd.DataFrame()
+                            
                     else:
                         st.warning("Mismatch in Colums of two Datasets...please upload Data set with same structure.")
-                                            
+                        del[[df,dataframe_new]]
+                        df=pd.DataFrame()
+                        dataframe_new=pd.DataFrame()               
 
 
 def login(userName: str, password: str) -> bool:
@@ -850,54 +918,6 @@ def Register_Clicked(displayname,userid ,password,designation):
     #show_login_page()
     
 
-    
-def show_login_page():
-    with loginSection:
-        tab1,tab2 =st.tabs(["   Existing Users  ","   Change Password   "])
-        with tab1:
-            
-            if st.session_state['loggedIn'] == False:
-                #st.session_state['username'] = ''
-                st.title("Login") 
-                userName = st.text_input (label="", value="", placeholder="Enter your user name",key="k1")
-                password = st.text_input (label="", value="",placeholder="Enter password", type="password",key="k2")
-                #get Companies for user
-                rights=get_user_rights()
-                mask = rights['user'] == userName
-                comp_name= rights[mask]
-                #comp_name=comp_name['company_name']
-                compname=st.selectbox("Select Company",comp_name['company_name'])
-                mask1=comp_name['company_name']==compname
-                roleds=comp_name[mask1]
-                if roleds.size !=0:
-                    role=roleds['role'].values[0]
-                else:
-                    role=""
-                #st.write(compname)
-                #st.write(comp_name['company_name'])
-                #get Audit for company
-                audits=get_audit(compname)
-                audit=st.selectbox("Select Audit Name",audits,key="auit_name")
-                if audit:
-                    st.button ("Login", on_click=check_login, args= (userName, password,compname,role,audit))
-                
-        with tab2:
-            with st.form("New User",clear_on_submit=True):
-                
-                st.title("Change Password")
-                userid = st.text_input (label="", value="", placeholder="Enter your user ID",key="k5")
-                password = st.text_input (label="", value="",placeholder="Enter Current Password", type="password",key="k6")
-                new_pass = st.text_input (label="", value="", placeholder="Enter New Password", type="password",key="k3")
-                renew_pass = st.text_input (label="", value="", placeholder="ReEnter New Password", type="password",key="k4")
-                submit_user =st.form_submit_button("Submit")
-                if submit_user:
-                    if new_pass == renew_pass:
-                        #createuser=create_user(displayname,userid,password,designation)
-                        newpass=update_password(userid,password,new_pass)
-                        st.info(newpass)
-                    else:
-                        st.info('New Password and ReEntered Password not matching...')
-                #st.button ("Register", on_click=Register_Clicked, args= (userid, password,designation,displayname))
 
 def show_auditee():
     st.warning("You Have Logged In as Auditee...You have no access to this Menu")
